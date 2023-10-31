@@ -1,0 +1,10 @@
+black
+flake8
+Flake8-pyproject
+autoflake
+mypy
+pre-commit
+pylint
+pytest
+types-PyYAML
+ruff

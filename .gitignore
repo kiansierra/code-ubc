@@ -1,0 +1,43 @@
+# Ignore Python outputs
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+__pycache__/*
+*.pyc
+# Ignore WANDB runs and artifacts
+wandb/*
+*/wandb/*
+artifacts/*
+*/artifacts/*
+
+# Ignore Used checkpoints
+*.pth
+*.bin
+*.ckpt
+# Ignore Common Temporary output folders
+./tmp/*
+tmp/*
+cache/*
+*.pt
+lightning_logs/*
+# Ignore Common testing, linting and run outputs
+.hydra/*
+*.log
+.mypy*
+logs/*
+temp/*
+# Ignore Common checkpoints Saving
+checkpoints/*
+outputs/*
+# Ignore Env Variables File
+.env
+# Ignore build outputs
+build/*
+*.egg-info/*
+src/*.egg-info/*
+
+
+test_trainer/*
+*.csv
+*.ipynb
+
+kmeans.clusters
