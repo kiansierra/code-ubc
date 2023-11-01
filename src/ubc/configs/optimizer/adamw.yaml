@@ -1,0 +1,9 @@
+  module_name: torch.optim
+  obj_name: AdamW
+  lr: ${lr}
+  weight_decay: 0.001
+  betas:
+    - 0.9
+    - 0.999
+  eps: 1e-6
+  fused: true

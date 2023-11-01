@@ -1,0 +1,7 @@
+  module_name: timm.scheduler.scheduler_factory
+  obj_name: create_scheduler_v2
+  sched: cosine
+  num_epochs: 5
+  warmup_epochs: 0
+  num_warmup_steps: 1_000
+  num_training_steps: ${max_steps}

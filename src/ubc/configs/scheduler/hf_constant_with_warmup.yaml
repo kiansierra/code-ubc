@@ -1,0 +1,5 @@
+  module_name: transformers
+  obj_name: get_scheduler
+  name: constant_with_warmup
+  num_warmup_steps: 5_000
+  num_training_steps: ${max_steps}
