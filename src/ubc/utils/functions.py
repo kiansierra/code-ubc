@@ -5,15 +5,12 @@ import os
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
-from accelerate.logging import get_logger
+from loguru import logger
 from omegaconf import DictConfig, open_dict
 
 # from .logger import get_logger
 
 __all__ = ["filter_arguments", "get_builder", "compose", "set_debug", "set_overfit"]
-
-logger = get_logger(__name__)
-
 
 def filter_arguments(
     function: Callable, drop_keys: Optional[List[str]] = None, **kwargs: Optional[Any]
