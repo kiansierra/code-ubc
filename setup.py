@@ -5,8 +5,8 @@ from setuptools import find_packages, setup
 
 # Package meta-data.
 NAME = "ubc"
-DESCRIPTION = "BengaliaiAI Speech Recognition. PyTorch."
-URL = "https://github.com/kiansierra/kaggle-bengali"
+DESCRIPTION = "Kaggle-UBC-OCEAN competition. PyTorch. https://www.kaggle.com/competitions/UBC-OCEAN/overview"
+URL = "https://github.com/kiansierra/code-ubc"
 EMAIL = "kiansierra90@gmail.com"
 AUTHOR = "Kian Sierra McGettigan"
 REQUIRES_PYTHON = ">=3.7.0"
