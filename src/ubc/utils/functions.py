@@ -12,6 +12,7 @@ from omegaconf import DictConfig, open_dict
 
 __all__ = ["filter_arguments", "get_builder", "compose", "set_debug", "set_overfit"]
 
+
 def filter_arguments(
     function: Callable, drop_keys: Optional[List[str]] = None, **kwargs: Optional[Any]
 ) -> Dict[str, Any]:
