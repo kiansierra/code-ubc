@@ -40,9 +40,14 @@ def save_image_splits(img:np.ndarray, path:Path, split_size:int=512) -> None:
 
 
 def load_split_save(path:Path, split_size:int=512, resize_factor:float=0.25) -> None:
+    save_path = PROCESSED_DIR / 'train' / path.stem
+    save_path.mkdir(exist_ok=True, parents=True)
+    if len(list(save_path.glob('*.png'))) > 0:
+        logger.info(f'Image {path.stem} already split. Skipping.')
+        return None
     img = plt.imread(str(path))
     if resize_factor != 1:
-        max_size = int(max(img.shape)*resize_factor)
+        max_size = int(max(img.shape)*resize_factor) 
         logger.info(f'Resizing image {path.stem} of shape {img.shape} by factor {resize_factor} to max size {max_size}')
         img = A.LongestMaxSize(max_size=max_size)(image=img)['image']
         gc.collect()
@@ -61,10 +66,11 @@ def arguments():
     args = parser.parse_args()
     return args
 
-def main():
+def main() -> None:
     args = arguments()
     path = Path(args.image_path)
     load_split_save(path, args.split_size, args.resize)
+    
 if __name__ == '__main__':
     main()
 
