@@ -13,6 +13,17 @@
             "justMyCode": false
         },
         {
+            "name": "Train",
+            "type": "python",
+            "request": "launch",
+            "program": "src/train_pl.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--config-name", "tf_efficientnetv2_s_in21ft1k"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Split Images",
             "type": "python",
             "request": "launch",
