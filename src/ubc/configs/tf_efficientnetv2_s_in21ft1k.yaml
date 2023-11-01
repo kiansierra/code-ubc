@@ -1,0 +1,25 @@
+defaults:
+  - trainer: trainer_pl
+  - optimizer: adamw
+  - scheduler: hf_cosine_with_restarts
+  - dataloader: dataloader
+  - _self_
+
+model:
+  backbone: tf_efficientnetv2_s_in21ft1k
+  pretrained: True
+  num_classes: 5
+
+name: ${model.backbone}
+# output_dir:  ../checkpoints/${name}-lora
+# save_folder: ${indeces.save_folder}
+# index_name: ${indeces.index_name}
+img_size: 512
+fold: 0
+sample_size: 0
+batch_size: 8
+num_workers: 4
+seed: 42
+lr: 2e-5
+max_steps: 100000
+num_epochs: 1

@@ -1,0 +1,15 @@
+persistent_workers: true
+tr_dataloader:
+  batch_size: ${batch_size}
+  num_workers: ${num_workers}
+  shuffle: true
+  drop_last: true
+  pin_memory: true
+  persistent_workers : ${dataloader.persistent_workers}
+
+val_dataloader:
+  batch_size: ${batch_size}
+  num_workers: ${num_workers}
+  drop_last: true
+  pin_memory: true
+  persistent_workers :  ${dataloader.persistent_workers}
