@@ -1,3 +1,4 @@
-from .datasets import *
+from .__version__ import __version__
+from .data import *
 from .models import *
 from .utils import *
