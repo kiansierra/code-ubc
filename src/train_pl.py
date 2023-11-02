@@ -33,8 +33,8 @@ def save_config(config :DictConfig):
 
 @hydra.main(config_path="ubc/configs", config_name="config", version_base=None)
 def train(config: DictConfig) -> None:
-    df = pd.read_parquet(ROOT_DIR / "train.parquet")
-    df["path"] = df.apply(get_path, axis=1)
+    df = pd.read_parquet(ROOT_DIR / "train-crops.parquet")
+    # df["path"] = df.apply(get_path, axis=1)
     train_df = df[df["fold"] != config["fold"]].reset_index(drop=True)
     valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
     train_ds = AugmentationDataset(train_df, augmentation=get_train_transforms(config))
