@@ -30,7 +30,7 @@
             "program": "scripts/split_images.py",
             "console": "integratedTerminal",
             "args": [
-                "--image_path", "../input/UBC-OCEAN/train_images/10077.png"
+                "--image_path", "../input/UBC-OCEAN/train_images/91.png"
             ],
             "justMyCode": false
         }
