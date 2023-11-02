@@ -8,6 +8,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
 
+from .metrics import EpochLoss
+
 
 class GeM(nn.Module):
     def __init__(self, p=3, eps=1e-6):
@@ -43,10 +45,17 @@ class TimmModel(pl.LightningModule):
         in_features = self.backbone.classifier.in_features
         self.backbone.classifier = nn.Identity()
         self.backbone.global_pool = nn.Identity()
+        metrics = tm.MetricCollection(tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
+                                      tm.Precision(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
+                                      tm.Recall(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
+                                      EpochLoss()
+                                      )
         self.pooling = GeM()
         self.linear = nn.Linear(in_features, model_config["num_classes"])
         self.softmax = nn.Softmax(dim=1)
-        self.metric = tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro")
+        self.train_metric = metrics.clone(prefix="train/")
+        self.val_metric = metrics.clone(prefix="val/")
+        
 
     def forward(self, images):
         features = self.backbone(images)
@@ -55,10 +64,6 @@ class TimmModel(pl.LightningModule):
         output = {"logits": logits, "features": pooled_features, "probs": self.softmax(logits)}
         return output
 
-    def on_train_epoch_start(self) -> None:
-        self.train_epoch_loss = 0
-        self.train_batches = 0
-        return super().on_train_epoch_start()
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         images = batch["image"]
@@ -66,35 +71,33 @@ class TimmModel(pl.LightningModule):
         output = self(images)
         loss = F.cross_entropy(output["logits"], labels)
         self.log("train/loss", loss, prog_bar=True)
-        self.train_epoch_loss += loss.item()
-        self.train_batches += 1
+        self.train_metric.update(preds=output["probs"], target=labels, loss=loss)
         return loss
 
     def on_train_epoch_end(self) -> None:
-        self.log("train/epoch_loss", self.train_epoch_loss / self.train_batches, prog_bar=True)
+        metrics = self.train_metric.compute()
+        self.train_metric.reset()
+        self.log_dict(metrics, prog_bar=True, sync_dist=True)
         return super().on_train_epoch_end()
 
-    def on_validation_epoch_start(self) -> None:
-        self.val_epoch_loss = 0
-        self.val_batches = 0
-        return super().on_validation_epoch_start()
 
     def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
         images = batch["image"]
         labels = batch["label"]
         output = self(images)
         loss = F.cross_entropy(output["logits"], labels)
-        self.metric.update(output["probs"], labels)
-        self.val_epoch_loss += loss.item()
-        self.val_batches += 1
+        self.val_metric.update(preds=output["probs"], target=labels, loss=loss)
         return super().validation_step()
 
     def on_validation_epoch_end(self) -> None:
-        metric = self.metric.compute()
-        self.metric.reset()
-        self.log("val/balanced-accuracy", metric, prog_bar=True)
-        self.log("val/epoch_loss", self.val_epoch_loss / self.val_batches, prog_bar=True)
+        metrics = self.val_metric.compute()
+        self.val_metric.reset()
+        self.log_dict(metrics, prog_bar=True, sync_dist=True)
         return super().on_validation_epoch_end()
+    
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
+        output = self(batch['image'])
+        return output['probs']
 
     def configure_optimizers(self) -> Any:
         optimizer = torch.optim.AdamW(self.parameters(), lr=1e-4)
