@@ -1,14 +1,16 @@
-from typing import Any
+from typing import IO, Any, Optional, Union
 
 import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
+from lightning_fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
 
 from .metrics import EpochLoss
+from .optimization_utils import get_optimizer, get_scheduler
 
 
 class GeM(nn.Module):
@@ -56,7 +58,7 @@ class TimmModel(pl.LightningModule):
         self.train_metric = metrics.clone(prefix="train/")
         self.val_metric = metrics.clone(prefix="val/")
         
-
+        
     def forward(self, images):
         features = self.backbone(images)
         pooled_features = self.pooling(features).flatten(1)
@@ -100,5 +102,6 @@ class TimmModel(pl.LightningModule):
         return output['probs']
 
     def configure_optimizers(self) -> Any:
-        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-4)
-        return [optimizer], []
+        optimizer = get_optimizer(self.config, self)
+        scheduler = get_scheduler(self.config, optimizer)
+        return [optimizer], [scheduler]
