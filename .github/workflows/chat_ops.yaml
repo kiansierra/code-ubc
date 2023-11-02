@@ -1,0 +1,38 @@
+name: ChatOps
+on: issue_comment
+
+permissions:
+    contents: read
+    issues: write
+    pull-requests: write
+
+env:
+    BUG_COMMENT: "/bug"
+
+jobs:
+    label-bug:
+        name: label-bug
+        runs-on: ubuntu-latest
+        steps: 
+            # this step is for debugging purposes only, so you can see the payload. 
+            -   name: see payload 
+                run: echo "PAYLOAD:\n${PAYLOAD}\n"
+                env:
+                    PAYLOAD: ${{ toJSON(github.event) }}
+            -   name: Install Ghapi
+                run: pip install ghapi
+
+            -   name: Make a Comment
+                shell: python
+                run: |
+                    import os
+                    from ghapi.all import GhApi
+                    if os.environ['COMMENT'] == os.environ['BUG_COMMENT']:
+                        owner, repo = os.environ['REPO'].split('/')
+                        api = GhApi(owner=owner, repo=repo, token=os.environ['GITHUB_TOKEN'])
+                        api.issues.add_labels(issue_number=os.environ['NUMBER'], labels=['bug'])
+                env:
+                    REPO: ${{ github.repository }}
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                    NUMBER: ${{ github.event.issue.number }}
+                    COMMENT: ${{ github.event.comment.body }}

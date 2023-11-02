@@ -1,0 +1,37 @@
+name: Code Consistency
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+jobs:
+  code_formatting:
+    name: code styling
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    # You can test your matrix by printing the current Python version
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install wheel
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade pip setuptools
+        pip install wheel
+
+    - name: Install Dev dependencies
+      run:
+        pip install -r requirements_dev.txt
+    - name: Run Style Check
+      run:
+        make style
+

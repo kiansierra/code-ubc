@@ -1,0 +1,33 @@
+name: Update Kaggle Code Dependencies
+
+on:
+  push:
+    branches: [ main, master ]
+jobs:
+  upload_code_to_kaggle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python version
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - name: Install the packages
+        uses: BSFishy/pip-action@v1
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        with:
+          packages: kaggle
+      - name: Update Kaggle Dependencies
+        shell: bash
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          kaggle kernels pull -m $KAGGLE_USERNAME/dependencies-ubc
+          kaggle kernels push -p .
+      
