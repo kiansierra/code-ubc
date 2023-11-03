@@ -1,22 +1,18 @@
-
-import multiprocessing
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
 
-import cv2
-import matplotlib.pyplot as plt
-import mlcrate as mlc
-import numpy as np
 import pandas as pd
-import timm
-from PIL import Image
 from sklearn.model_selection import StratifiedKFold
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
+def get_path(row):
+    if row["is_tma"]:
+        return str(ROOT_DIR / "train_images" / f"{row['image_id']}.png")
+    return str(ROOT_DIR / "train_thumbnails" / f"{row['image_id']}_thumbnail.png")
 
 def generate_folds() -> None:
     train_df = pd.read_csv(ROOT_DIR / 'train.csv')
+    train_df['path'] = train_df.apply(get_path, axis=1).astype(str)
     train_df['label-tma'] = train_df['label'].astype(str) + '-' + train_df['is_tma'].astype(str)
     kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     train_df['fold'] = -1
