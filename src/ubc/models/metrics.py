@@ -3,6 +3,7 @@ import torchmetrics as tm
 
 __all__ = ["EpochLoss"]
 
+
 class EpochLoss(tm.Metric):
     def __init__(self):
         super().__init__()

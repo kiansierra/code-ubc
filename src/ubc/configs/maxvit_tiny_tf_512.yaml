@@ -6,12 +6,12 @@ defaults:
   - _self_
 
 model:
-  backbone: tf_efficientnetv2_s_in21ft1k
+  backbone: maxvit_tiny_tf_512
   pretrained: True
   num_classes: 5
 
 dataset:
-  name: train
+  name: train-crops
 
 augmentations:
   train:

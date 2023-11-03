@@ -34,5 +34,7 @@ class AugmentationDataset(Dataset):
         image = self.load_image(row["path"])
         if self.augmentation:
             image = self.augmentation(image=image)["image"]
-        output = {"image": image, "label": label2idx[row["label"]]}
+        output = {"image_id": row["image_id"], "image": image}
+        if "label" in row:
+            output["label"] = label2idx[row["label"]]
         return output

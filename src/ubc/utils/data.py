@@ -2,13 +2,11 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
-from accelerate.logging import get_logger
+from loguru import logger
 
 import wandb
 
 from .additional_types import BatchElement, DataElement, DeviceType
-
-logger = get_logger(__name__)
 
 __all__ = ["batch_to_device", "reverse_batch", "upload_to_wandb"]
 

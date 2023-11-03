@@ -1,10 +1,9 @@
-from typing import IO, Any, Optional, Union
+from typing import Any
 
 import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
-from lightning_fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
@@ -47,25 +46,24 @@ class TimmModel(pl.LightningModule):
         in_features = self.backbone.classifier.in_features
         self.backbone.classifier = nn.Identity()
         self.backbone.global_pool = nn.Identity()
-        metrics = tm.MetricCollection(tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
-                                      tm.Precision(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
-                                      tm.Recall(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
-                                      EpochLoss()
-                                      )
+        metrics = tm.MetricCollection(
+            tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
+            tm.Precision(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
+            tm.Recall(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
+            EpochLoss(),
+        )
         self.pooling = GeM()
         self.linear = nn.Linear(in_features, model_config["num_classes"])
         self.softmax = nn.Softmax(dim=1)
         self.train_metric = metrics.clone(prefix="train/")
         self.val_metric = metrics.clone(prefix="val/")
-        
-        
+
     def forward(self, images):
         features = self.backbone(images)
         pooled_features = self.pooling(features).flatten(1)
         logits = self.linear(pooled_features)
         output = {"logits": logits, "features": pooled_features, "probs": self.softmax(logits)}
         return output
-
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         images = batch["image"]
@@ -82,7 +80,6 @@ class TimmModel(pl.LightningModule):
         self.log_dict(metrics, prog_bar=True, sync_dist=True)
         return super().on_train_epoch_end()
 
-
     def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
         images = batch["image"]
         labels = batch["label"]
@@ -96,12 +93,12 @@ class TimmModel(pl.LightningModule):
         self.val_metric.reset()
         self.log_dict(metrics, prog_bar=True, sync_dist=True)
         return super().on_validation_epoch_end()
-    
+
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
-        output = self(batch['image'])
-        return output['probs']
+        output = self(batch["image"])
+        return output["probs"]
 
     def configure_optimizers(self) -> Any:
         optimizer = get_optimizer(self.config, self)
         scheduler = get_scheduler(self.config, optimizer)
-        return [optimizer], [scheduler]
+        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
