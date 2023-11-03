@@ -104,4 +104,4 @@ class TimmModel(pl.LightningModule):
     def configure_optimizers(self) -> Any:
         optimizer = get_optimizer(self.config, self)
         scheduler = get_scheduler(self.config, optimizer)
-        return [optimizer], [scheduler]
+        return [optimizer], [{'scheduler':scheduler, 'interval':'step'}]
