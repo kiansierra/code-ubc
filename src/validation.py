@@ -1,3 +1,4 @@
+import argparse
 import os
 from pathlib import Path
 
@@ -16,23 +17,20 @@ from ubc import AugmentationDataset, TimmModel, get_train_transforms, get_valid_
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
+def parser():
+    parser = argparse.ArgumentParser(description='validation')
+    parser.add_argument('--folder', type=str, help='folder to validate', required=True)
+    return parser.parse_args()
 
-def get_path(row):
-    if row["is_tma"]:
-        return str(ROOT_DIR / "train_images" / f"{row['image_id']}.png")
-    return str(ROOT_DIR / "train_thumbnails" / f"{row['image_id']}_thumbnail.png")
 
 def validate(folder: str) -> None:
     config = OmegaConf.load(os.path.join(folder, "config.yaml"))
     df = pd.read_parquet(ROOT_DIR / "train.parquet")
-    df["path"] = df.apply(get_path, axis=1)
     valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
     labels = valid_df['label'].map(label2idx).tolist()
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
-    
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
-    # model = TimmModel(config)
     model = TimmModel.load_from_checkpoint(os.path.join(folder, "last.ckpt"), config=config)
     trainer = pl.Trainer(devices=1)
     predictions = trainer.predict(model, valid_dataloader)
@@ -44,5 +42,6 @@ def validate(folder: str) -> None:
 
 
 if __name__ == "__main__":
-    validate(folder="../checkpoints/tf_efficientnetv2_s_in21ft1k/c3unvy7o")  # pylint: disable=no-value-for-parameter
+    args = parser()
+    validate(folder=args.folder)  # pylint: disable=no-value-for-parameter
     print("Done!")
