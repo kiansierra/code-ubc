@@ -5,36 +5,36 @@ import hydra
 import pandas as pd
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf, open_dict
-from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
-                                         ModelCheckpoint, ModelSummary)
+from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
-from ubc import (AugmentationDataset, TimmModel, get_train_transforms,
-                 get_valid_transforms, upload_to_wandb)
+from ubc import AugmentationDataset, TimmModel, get_train_transforms, get_valid_transforms, upload_to_wandb
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
-@rank_zero_only
-def update_output_dir(config:DictConfig, logger) -> DictConfig:
-    config.output_dir = config.output_dir + '/' + logger.experiment.id
 
 @rank_zero_only
-def save_config(config :DictConfig):
+def update_output_dir(config: DictConfig, logger) -> DictConfig:
+    config.output_dir = config.output_dir + "/" + logger.experiment.id
+
+
+@rank_zero_only
+def save_config(config: DictConfig):
     os.makedirs(config.output_dir, exist_ok=True)
-    OmegaConf.save(config, config.output_dir + '/config.yaml')
-    
+    OmegaConf.save(config, config.output_dir + "/config.yaml")
+
+
 def set_debug(config: DictConfig):
-    if config.get('debug', False):
+    if config.get("debug", False):
         with open_dict(config):
             config.dataloader.tr_dataloader.num_workers = 0
             config.dataloader.val_dataloader.num_workers = 0
             config.dataloader.tr_dataloader.persistent_workers = False
             config.dataloader.val_dataloader.persistent_workers = False
             config.trainer.devices = 1
-    
-    
+
 
 @hydra.main(config_path="ubc/configs", config_name="config", version_base=None)
 def train(config: DictConfig) -> None:
@@ -50,24 +50,24 @@ def train(config: DictConfig) -> None:
     model = TimmModel(config)
     config_container = OmegaConf.to_container(config, resolve=True)
     tags = [config.model.backbone, config.dataset.name, f"img_size-{config.img_size}"]
-    logger = WandbLogger(project="UBC-OCEAN",
-                         dir=config.output_dir,
-                         tags=tags,
-                         config=config_container,
-                         offline=config.get('debug', False),
-                         job_type="train")
+    logger = WandbLogger(
+        project="UBC-OCEAN",
+        dir=config.output_dir,
+        tags=tags,
+        config=config_container,
+        offline=config.get("debug", False),
+        job_type="train",
+    )
     update_output_dir(config, logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
-    early_stopping = EarlyStopping(monitor=config['monitor'], patience=5, mode="max")
-    checkpoint_callback = ModelCheckpoint(dirpath = config.output_dir,
-                                          monitor=config['monitor'],
-                                          mode="max",
-                                          save_last=True,
-                                          save_top_k=2)
-    trainer = pl.Trainer(**config["trainer"],
-                         logger=logger,
-                         callbacks=[lr_monitor, early_stopping, checkpoint_callback])
+    early_stopping = EarlyStopping(monitor=config["monitor"], patience=5, mode="max")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=config.output_dir, monitor=config["monitor"], mode="max", save_last=True, save_top_k=2
+    )
+    trainer = pl.Trainer(
+        **config["trainer"], logger=logger, callbacks=[lr_monitor, early_stopping, checkpoint_callback]
+    )
     trainer.fit(model, train_dataloader, valid_dataloader)
     rank_zero_only(upload_to_wandb)(config.output_dir, name=config.model.backbone)
 
