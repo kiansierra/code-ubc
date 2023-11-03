@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -19,20 +20,33 @@ def parser():
     parser.add_argument("--folder", type=str, help="folder to validate", required=True)
     return parser.parse_args()
 
+def aggregate_predictions(predictions: Dict[str, torch.Tensor]) -> pd.DataFrame:
+    data = {k:predictions['probs'][:,v] for k,v in  label2idx.items()}
+    data['image_id'] = predictions['image_id']
+    data = pd.DataFrame(data).groupby('image_id', as_index=False).mean()
+    data['pred'] = data[label2idx.keys()].values.argmax(axis=1)
+    return data
+
 
 def validate(folder: str) -> None:
+    torch.set_float32_matmul_precision('medium')
     config = OmegaConf.load(os.path.join(folder, "config.yaml"))
-    df = pd.read_parquet(ROOT_DIR / "train.parquet")
-    valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
-    labels = valid_df["label"].map(label2idx).tolist()
+    df = pd.read_parquet(ROOT_DIR / f"{config.dataset.name}.parquet")
+    valid_df = df.query(f"fold== {config['fold']}").reset_index(drop=True)
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
     model = TimmModel.load_from_checkpoint(os.path.join(folder, "last.ckpt"), config=config)
     trainer = pl.Trainer(devices=1)
     predictions = trainer.predict(model, valid_dataloader)
-    preds = torch.vstack(predictions).argmax(1)
-    bac = balanced_accuracy_score(labels, preds)
+    predictions =  {k: torch.cat([elem[k] for elem in predictions], dim=0) for k in predictions[0].keys()}
+    data = aggregate_predictions(predictions)
+    # preds = predictions['probs'].argmax(1)
+    valid_labels = valid_df.groupby('image_id', as_index=False).first()
+    valid_labels["label"] = valid_labels["label"].map(label2idx).tolist()
+    
+    data = data.merge(valid_labels, on='image_id', how='left')
+    bac = balanced_accuracy_score(data['label'], data['pred'])
     logger.info(f"Balanced Accuracy: {bac:.4f} for {folder}")
 
 
