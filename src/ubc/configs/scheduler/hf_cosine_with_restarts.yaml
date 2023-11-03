@@ -1,6 +1,6 @@
   module_name: transformers
   obj_name: get_scheduler
   name: cosine_with_restarts
-  num_warmup_steps: 350
+  num_warmup_steps: 50
   num_training_steps: ${max_steps}
   num_cycles: 1

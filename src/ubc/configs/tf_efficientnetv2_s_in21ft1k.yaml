@@ -10,15 +10,25 @@ model:
   pretrained: True
   num_classes: 5
 
+dataset:
+  name: train
+
+augmentations:
+  train:
+    img_size: ${img_size}
+    flip:  True
+  valid:
+    img_size: ${img_size}
+
+seed: 42
 name: ${model.backbone}
-monitor: val/MulticlassAccuracy
 output_dir:  ../checkpoints/${name}
 img_size: 512
 fold: 0
-sample_size: 0
+monitor: val/MulticlassAccuracy
 batch_size: 16
 num_workers: 12
-seed: 42
-lr: 2e-5
-max_steps: 100000
-num_epochs: 1
+
+lr: 5e-4
+max_steps: 10000
+max_epochs: 50
