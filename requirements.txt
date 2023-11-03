@@ -7,6 +7,7 @@ fvcore
 hydra-core
 jinja2
 kaggle
+loguru
 omegaconf
 peft
 pydantic
