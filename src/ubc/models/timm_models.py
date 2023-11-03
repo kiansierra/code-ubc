@@ -36,8 +36,8 @@ class GeM(nn.Module):
             + ")"
         )
 
+
 class BaseLightningModel(pl.LightningModule):
-    
     def __init__(self, config) -> None:
         super().__init__()
         self.config = config
@@ -50,7 +50,7 @@ class BaseLightningModel(pl.LightningModule):
         )
         self.train_metric = metrics.clone(prefix="train/")
         self.val_metric = metrics.clone(prefix="val/")
-        
+
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         images = batch["image"]
         labels = batch["label"]
@@ -82,8 +82,7 @@ class BaseLightningModel(pl.LightningModule):
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         output = self(batch["image"])
-        return {'image_id': batch['image_id'], 'probs': output['probs']}
-    
+        return {"image_id": batch["image_id"], "probs": output["probs"]}
 
     def configure_optimizers(self) -> Any:
         optimizer = get_optimizer(self.config, self)
@@ -109,4 +108,3 @@ class TimmModel(BaseLightningModel):
         logits = self.linear(pooled_features)
         output = {"logits": logits, "features": pooled_features, "probs": self.softmax(logits)}
         return output
-
