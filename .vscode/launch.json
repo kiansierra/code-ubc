@@ -24,6 +24,29 @@
             "justMyCode": false
         },
         {
+            "name": "Debug: Train",
+            "type": "python",
+            "request": "launch",
+            "program": "src/train_pl.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--config-name", "tf_efficientnetv2_s_in21ft1k",
+                "+debug=True"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Validation",
+            "type": "python",
+            "request": "launch",
+            "program": "src/validation.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--folder", "../checkpoints/tf_efficientnetv2_s_in21ft1k/c3unvy7o"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Split Images",
             "type": "python",
             "request": "launch",
