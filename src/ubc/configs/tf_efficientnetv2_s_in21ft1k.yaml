@@ -11,7 +11,7 @@ model:
   num_classes: 5
 
 dataset:
-  name: train
+  name: train-crops
 
 augmentations:
   train:

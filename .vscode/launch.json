@@ -42,7 +42,7 @@
             "program": "src/validation.py",
             "console": "integratedTerminal",
             "args": [
-                "--folder", "../checkpoints/tf_efficientnetv2_s_in21ft1k/c3unvy7o"
+                "--folder", "../checkpoints/tf_efficientnetv2_s_in21ft1k/gpdwburb"
             ],
             "justMyCode": false
         },
