@@ -4,6 +4,7 @@ from pathlib import Path
 import hydra
 import pandas as pd
 import pytorch_lightning as pl
+import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
@@ -38,6 +39,7 @@ def set_debug(config: DictConfig):
 
 @hydra.main(config_path="ubc/configs", config_name="config", version_base=None)
 def train(config: DictConfig) -> None:
+    torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
     df = pd.read_parquet(ROOT_DIR / f"{config.dataset.name}.parquet")
     set_debug(config)

@@ -8,27 +8,28 @@ from typing import Dict, List, Tuple, Union
 import albumentations as A
 import matplotlib.pyplot as plt
 import numpy as np
+import pyvips
 from loguru import logger
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
 
 
-def split_image(img:np.ndarray, split_size:int=512) -> Dict[Tuple[int, int], np.ndarray]:
+def split_image(img:np.ndarray, split_size:int=512) -> Dict[Tuple[int, int], pyvips.Image]:
     output = {}
-    for i in range(0, img.shape[0], split_size):
-        for j in range(0, img.shape[1], split_size):
-            output[(i,j)] = img[i:i+split_size, j:j+split_size]
+    for i in range(0, img.width, split_size):
+        for j in range(0, img.height, split_size):
+            output[(i,j)] = img.crop(i, j, min(split_size, img.width-i), min(split_size, img.height-j))
     return output
 
 
 def save_image_splits(img:np.ndarray, path:Path, split_size:int=512) -> None:
     splits = split_image(img, split_size)
-    clean_emptys = lambda x: {k:v for k,v in x.items() if v.std()>0}
+    clean_emptys = lambda x: {k:v for k,v in x.items() if np.array(v).std()>0}
     splits = clean_emptys(splits)
     logger.info(f'Splitting image {path.stem} in to {len(splits)} splits of size {split_size}')
     for (i,j), split in splits.items():
-        plt.imsave(str(path / f'{i}_{j}.png'), split)
+        split.write_to_file(str(path / f'{i}_{j}.png'))
 
 
 def load_split_save(img_path:Path, save_folder:Path, split_size:int=512, resize_factor:float=0.25) -> None:
@@ -39,11 +40,9 @@ def load_split_save(img_path:Path, save_folder:Path, split_size:int=512, resize_
         return None
     for img_path in save_path.glob("*.png"):
         os.remove(img_path)
-    img = plt.imread(str(img_path))
-    if resize_factor != 1 and max(img.shape) >4_000: #Exculde TMAs which are already small
-        max_size = int(max(img.shape)*resize_factor) 
-        logger.info(f'Resizing image {img_path.stem} of shape {img.shape} by factor {resize_factor} to max size {max_size}')
-        img = A.LongestMaxSize(max_size=max_size)(image=img)['image']
+    img = pyvips.Image.new_from_file(img_path)
+    if resize_factor != 1 and max(img.width, img.height) >4_000: #Exculde TMAs which are already small
+        img = img.resize(resize_factor)
         gc.collect()
     
     save_image_splits(img, save_path, split_size)
