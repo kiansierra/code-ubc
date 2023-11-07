@@ -1,26 +1,17 @@
 
 import argparse
-import concurrent.futures
 import gc
-import multiprocessing
 import os
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import albumentations as A
-import cv2
 import matplotlib.pyplot as plt
-import mlcrate as mlc
 import numpy as np
-import pandas as pd
-import timm
 from loguru import logger
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
-
-
-
 
 
 def split_image(img:np.ndarray, split_size:int=512) -> Dict[Tuple[int, int], np.ndarray]:
@@ -40,22 +31,20 @@ def save_image_splits(img:np.ndarray, path:Path, split_size:int=512) -> None:
         plt.imsave(str(path / f'{i}_{j}.png'), split)
 
 
-def load_split_save(path:Path, split_size:int=512, resize_factor:float=0.25) -> None:
-    save_path = PROCESSED_DIR / 'train' / path.stem
+def load_split_save(img_path:Path, save_folder:Path, split_size:int=512, resize_factor:float=0.25) -> None:
+    save_path = save_folder/ img_path.stem
     save_path.mkdir(exist_ok=True, parents=True)
     if len(list(save_path.glob('*.png'))) > 4:
-        logger.info(f'Image {path.stem} already split. Skipping.')
+        logger.info(f'Image {img_path.stem} already split. Skipping.')
         return None
     for img_path in save_path.glob("*.png"):
         os.remove(img_path)
-    img = plt.imread(str(path))
+    img = plt.imread(str(img_path))
     if resize_factor != 1 and max(img.shape) >4_000: #Exculde TMAs which are already small
         max_size = int(max(img.shape)*resize_factor) 
-        logger.info(f'Resizing image {path.stem} of shape {img.shape} by factor {resize_factor} to max size {max_size}')
+        logger.info(f'Resizing image {img_path.stem} of shape {img.shape} by factor {resize_factor} to max size {max_size}')
         img = A.LongestMaxSize(max_size=max_size)(image=img)['image']
         gc.collect()
-    save_path = PROCESSED_DIR / 'train' / path.stem
-    save_path.mkdir(exist_ok=True, parents=True)
     
     save_image_splits(img, save_path, split_size)
     del img
@@ -63,6 +52,7 @@ def load_split_save(path:Path, split_size:int=512, resize_factor:float=0.25) -> 
     
 def arguments():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--save_folder', type=str, default=str(PROCESSED_DIR / 'train'))
     parser.add_argument('--image_path', type=str, required=True)
     parser.add_argument('--resize', type=float, default=0.25)
     parser.add_argument('--split_size', type=int, default=512)
@@ -71,8 +61,9 @@ def arguments():
 
 def main() -> None:
     args = arguments()
-    path = Path(args.image_path)
-    load_split_save(path, args.split_size, args.resize)
+    image_path = Path(args.image_path)
+    save_folder = Path(args.save_folder)
+    load_split_save(image_path, save_folder, args.split_size, args.resize)
     
 if __name__ == '__main__':
     main()

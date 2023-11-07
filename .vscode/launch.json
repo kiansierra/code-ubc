@@ -56,6 +56,18 @@
                 "--image_path", "../input/UBC-OCEAN/train_images/91.png"
             ],
             "justMyCode": false
+        },
+        {
+            "name": "Split Images PyVips",
+            "type": "python",
+            "request": "launch",
+            "program": "scripts/split_images_pyvips.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--image_path", "../input/UBC-OCEAN/train_images/91.png",
+                "--save_folder", "../input/UBC-OCEAN-PROCESSED/pyvips"
+            ],
+            "justMyCode": false
         }
     ]
 }
