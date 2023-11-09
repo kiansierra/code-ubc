@@ -1,2 +1,2 @@
 from .processor_pyvips import PyVipsProcessor
-from .processor_typing import PreProcessor
+from .processor_torch import TorchProcessor
