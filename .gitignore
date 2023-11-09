@@ -13,6 +13,7 @@ artifacts/*
 *.pth
 *.bin
 *.ckpt
+*.npy
 # Ignore Common Temporary output folders
 ./tmp/*
 tmp/*
@@ -35,9 +36,11 @@ build/*
 *.egg-info/*
 src/*.egg-info/*
 
+#images
+*.png
 
 test_trainer/*
 *.csv
 *.ipynb
 
-kmeans.clusters
+

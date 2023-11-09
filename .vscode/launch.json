@@ -64,8 +64,10 @@
             "program": "scripts/split_images_pyvips.py",
             "console": "integratedTerminal",
             "args": [
-                "--image_path", "../input/UBC-OCEAN/train_images/91.png",
-                "--save_folder", "../input/UBC-OCEAN-PROCESSED/pyvips"
+                "--backend", "torch",
+                "--image_path", "../input/UBC-OCEAN/train_images/51346.png",
+                "--save_folder", "../input/UBC-OCEAN-PROCESSED/pyvips",
+                "--max_tiles", "20"
             ],
             "justMyCode": false
         }
