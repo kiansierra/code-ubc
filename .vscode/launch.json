@@ -46,28 +46,18 @@
             ],
             "justMyCode": false
         },
+
         {
-            "name": "Split Images",
+            "name": "Split Images PyVips",
             "type": "python",
             "request": "launch",
             "program": "scripts/split_images.py",
             "console": "integratedTerminal",
             "args": [
-                "--image_path", "../input/UBC-OCEAN/train_images/91.png"
-            ],
-            "justMyCode": false
-        },
-        {
-            "name": "Split Images PyVips",
-            "type": "python",
-            "request": "launch",
-            "program": "scripts/split_images_pyvips.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--backend", "torch",
-                "--image_path", "../input/UBC-OCEAN/train_images/51346.png",
+                "--backend", "pyvips",
+                "--image_folder", "../input/UBC-OCEAN/train_images",
                 "--save_folder", "../input/UBC-OCEAN-PROCESSED/pyvips",
-                "--max_tiles", "20"
+                "--max_tiles", "50"
             ],
             "justMyCode": false
         }
