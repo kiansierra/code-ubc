@@ -38,6 +38,7 @@ src/*.egg-info/*
 
 #images
 *.png
+*.svs
 
 test_trainer/*
 *.csv

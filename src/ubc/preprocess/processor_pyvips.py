@@ -77,5 +77,5 @@ class PyVipsProcessor:
         chunks = self.split_image(img)
         for (i,j), chunk in chunks.items():
             self.save_tile(chunk, save_path / f'{i}_{j}.{self.extension}')
-        return chunks
+
             

@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from ubc import AugmentationDataset, TimmModel, get_valid_transforms, label2idx
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
-
+PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
 
 def parser():
     parser = argparse.ArgumentParser(description="validation")
@@ -34,6 +34,7 @@ def validate(folder: str) -> None:
     config = OmegaConf.load(os.path.join(folder, "config.yaml"))
     df = pd.read_parquet(ROOT_DIR / f"{config.dataset.name}.parquet")
     valid_df = df.query(f"fold== {config['fold']}").reset_index(drop=True)
+    valid_df = valid_df.groupby('image_id').sample(50, replace=True).drop_duplicates('path').reset_index(drop=True)
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
@@ -49,6 +50,9 @@ def validate(folder: str) -> None:
     data = data.merge(valid_labels, on="image_id", how="left")
     bac = balanced_accuracy_score(data["label"], data["pred"])
     logger.info(f"Balanced Accuracy: {bac:.4f} for {folder}")
+    data_tma = data.query('is_tma')
+    bac_tma = balanced_accuracy_score(data_tma["label"], data_tma["pred"])
+    logger.info(f"Balanced Accuracy TMA: {bac_tma:.4f} for {folder}")
 
 
 if __name__ == "__main__":
