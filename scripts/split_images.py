@@ -12,44 +12,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyvips
 from loguru import logger
+from omegaconf import DictConfig
+
 from ubc import PyVipsProcessor, TorchProcessor
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
 
     
-def arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--backend', type=str, default='pyvips')
-    parser.add_argument('--save_folder', type=str, default=str(PROCESSED_DIR / 'train'))
-    parser.add_argument('--image_path', type=str, default=None)
-    parser.add_argument('--image_folder', type=str, default=None)
-    parser.add_argument('--resize', type=float, default=0.25)
-    parser.add_argument('--split_size', type=int, default=512)
-    parser.add_argument('--max_tiles', type=int, default=None)
-    parser.add_argument('--center_crop', action='store_true', default = False)
-    parser.add_argument('--num_processes', type=int, default = 6)
-    
-    args = parser.parse_args()
-    return args
 
-def main() -> None:
-    args = arguments()
-    save_folder = Path(args.save_folder)
-    assert args.image_path or args.image_folder, "Must provide either image_path or image_folder"
-    assert args.backend in ['pyvips', 'torch'], "Backend must be one of ['pyvips', 'torch']"
-    if args.backend == 'torch':
-        processor = TorchProcessor(save_folder, args.resize, args.split_size,
-                                max_tiles=args.max_tiles, center_crop=args.center_crop)
+@hydra.main(config_path="../src/ubc/configs/preprocess", config_name="512-0.25", version_base=None)
+def main(config:DictConfig) -> None:
+    save_folder = Path(config.save_folder)
+    assert config.get('image_path') or config.get('image_folder'), "Must provide either image_path or image_folder"
+    assert config.backend in ['pyvips', 'torch'], "Backend must be one of ['pyvips', 'torch']"
+    if config.backend == 'torch':
+        processor = TorchProcessor(save_folder, config.resize_factor, config.split_size,
+                                max_tiles=config.max_tiles, center_crop=config.center_crop)
     else:
         
-        processor = PyVipsProcessor(save_folder, args.resize, args.split_size,
-                                max_tiles=args.max_tiles, center_crop=args.center_crop)
-    if args.image_path:
-        processor.run(args.image_path)
+        processor = PyVipsProcessor(save_folder, config.resize_factor, config.split_size,
+                                max_tiles=config.max_tiles, center_crop=config.center_crop)
+    if config.get('image_path'):
+        processor.run(config.image_path)
         return 
-    all_images = list(Path(args.image_folder).glob('*.png'))
-    with mp.Pool(processes=args.num_processes) as pool:
+    all_images = list(Path(config.image_folder).glob('*.png'))
+    with mp.Pool(processes=config.num_processes) as pool:
         pool.map(processor.run, all_images)
     
     
