@@ -48,16 +48,13 @@
         },
 
         {
-            "name": "Split Images PyVips",
+            "name": "Split Images",
             "type": "python",
             "request": "launch",
             "program": "scripts/split_images.py",
             "console": "integratedTerminal",
             "args": [
-                "--backend", "pyvips",
-                "--image_folder", "../input/UBC-OCEAN/train_images",
-                "--save_folder", "../input/UBC-OCEAN-PROCESSED/pyvips",
-                "--max_tiles", "50"
+                "--config-name", "512-0.25",
             ],
             "justMyCode": false
         }
