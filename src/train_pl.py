@@ -10,7 +10,6 @@ from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, Mode
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
-
 from ubc import AugmentationDataset, TimmModel, get_train_transforms, get_valid_transforms, upload_to_wandb
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
@@ -35,6 +34,7 @@ def set_debug(config: DictConfig):
             config.dataloader.tr_dataloader.persistent_workers = False
             config.dataloader.val_dataloader.persistent_workers = False
             config.trainer.devices = 1
+            config.trainer.fast_dev_run = True
 
 
 @hydra.main(config_path="ubc/configs", config_name="config", version_base=None)
