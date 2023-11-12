@@ -8,7 +8,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
 
-from .metrics import EpochLoss
+from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
 
 
@@ -46,6 +46,7 @@ class BaseLightningModel(pl.LightningModule):
             tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
             tm.Precision(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
             tm.Recall(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
+            ClassBalancedAccuracy(num_classes=model_config["num_classes"], average="macro"),
             EpochLoss(),
         )
         self.train_metric = metrics.clone(prefix="train/")
