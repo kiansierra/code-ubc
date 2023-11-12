@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Literal, Optional
 
 import numpy as np
 import pyvips
@@ -10,6 +10,7 @@ from PIL import Image
 PositionalTuple = tuple[int, int]
 ImageDict = Dict[PositionalTuple, pyvips.Image]
 ArrayDict = Dict[PositionalTuple, np.ndarray]
+FilterTypes = Literal['white', 'black']
 
 @dataclass
 class PyVipsProcessor:
@@ -21,6 +22,7 @@ class PyVipsProcessor:
     empty_threshold:float = 0.5
     max_tiles:Optional[int] = None
     center_crop:bool = True
+    filter_type:FilterTypes = 'black'
     
     def load_image(self, path:str):
         return  pyvips.Image.new_from_file(path)
@@ -50,15 +52,18 @@ class PyVipsProcessor:
             if not self.filter_tile(tile):
                 continue
             # tile = self.process_image(tile)
-            new_size = int(split_size * self.resize_factor), int(split_size * self.resize_factor)
-            tile = Image.fromarray(tile).resize(new_size, Image.LANCZOS)
-            output[(i,j)] = tile
+            # new_size = int(split_size * self.resize_factor), int(split_size * self.resize_factor)
+            # tile = Image.fromarray(tile).resize(new_size, Image.LANCZOS)
+            output[(i,j)] = Image.fromarray(tile)
             if self.max_tiles and len(output) >= self.max_tiles:
                 break
         return output
         
     def filter_tile(self, tile: np.ndarray) -> bool:
-        keep = (tile>0).mean()>self.empty_threshold
+        if self.filter_type == 'black':
+            keep = (tile>0).mean()<self.empty_threshold
+        elif self.filter_type == 'white':
+            keep = (tile >= 255).mean()<self.empty_threshold
         return keep
     
     def save_tile(self, tile: np.ndarray | pyvips.Image, path:Path):
