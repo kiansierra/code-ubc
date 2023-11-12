@@ -39,7 +39,9 @@ src/*.egg-info/*
 #images
 *.png
 *.svs
+*.tiff 
 
+# Other
 test_trainer/*
 *.csv
 *.ipynb
