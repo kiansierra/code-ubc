@@ -51,9 +51,6 @@ class PyVipsProcessor:
             tile = tile.numpy()
             if not self.filter_tile(tile):
                 continue
-            # tile = self.process_image(tile)
-            # new_size = int(split_size * self.resize_factor), int(split_size * self.resize_factor)
-            # tile = Image.fromarray(tile).resize(new_size, Image.LANCZOS)
             output[(i,j)] = Image.fromarray(tile)
             if self.max_tiles and len(output) >= self.max_tiles:
                 break
@@ -61,12 +58,12 @@ class PyVipsProcessor:
         
     def filter_tile(self, tile: np.ndarray) -> bool:
         if self.filter_type == 'black':
-            keep = (tile>0).mean()<self.empty_threshold
+            keep = (tile>0).mean()>self.empty_threshold
         elif self.filter_type == 'white':
             keep = (tile >= 255).mean()<self.empty_threshold
         return keep
     
-    def save_tile(self, tile: np.ndarray | pyvips.Image, path:Path):
+    def save_tile(self, tile: np.ndarray | Image.Image, path:Path):
         if path.suffix == '.npy':
             np.save(path, tile)
         else:
