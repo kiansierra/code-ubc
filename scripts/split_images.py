@@ -3,6 +3,7 @@ import argparse
 import gc
 import multiprocessing as mp
 import os
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -33,12 +34,19 @@ def main(config:DictConfig) -> None:
         
         processor = PyVipsProcessor(save_folder, config.resize_factor, config.split_size,
                                 max_tiles=config.max_tiles, center_crop=config.center_crop)
+    start_time = time.time()
     if config.get('image_path'):
+        logger.info(f"Processing {config.image_path} started at {start_time}")
         processor.run(config.image_path)
+        time_elapsed = time.time() - start_time
+        logger.info(f"Finished processing {config.image_path} in {time_elapsed/60:.2d} minutes")
         return 
     all_images = list(Path(config.image_folder).glob('*.png'))
+    logger.info(f"Processing {config.image_folder} total files {len(all_images)} started at {time.ctime()}")
     with mp.Pool(processes=config.num_processes) as pool:
         pool.map(processor.run, all_images)
+    logger.info(f"Finished processing {config.image_folder} in {time_elapsed/60:.2d} minutes")
+    
     
     
     
