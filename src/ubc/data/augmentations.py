@@ -12,7 +12,7 @@ def get_blurs():
     return A.OneOf(blurs, p=0.5)
 
 def get_dropouts():
-    dropouts = [A.Cutout(num_holes=10, max_h_size=16, max_w_size=16), A.PixelDropout(dropout_prob=0.05), A.MotionBlur(), A.MedianBlur()]
+    dropouts = [A.Cutout(num_holes=10, max_h_size=16, max_w_size=16), A.PixelDropout(dropout_prob=0.05)]
     return A.OneOf(dropouts, p=0.5)
 
 
@@ -24,6 +24,17 @@ def get_train_transforms(config: DictConfig) -> A.Compose:
         A.HorizontalFlip(p=0.5) if config.get("flip", False) else None,
         A.VerticalFlip(p=0.5) if config.get("flip", False) else None,
         A.Rotate(limit=180, p=0.5) if config.get("rotate", False) else None,
+        A.HueSaturationValue(
+                hue_shift_limit=0.2, 
+                sat_shift_limit=0.2, 
+                val_shift_limit=0.2, 
+                p=0.5
+            ),
+        A.RandomBrightnessContrast(
+                brightness_limit=(-0.1,0.1), 
+                contrast_limit=(-0.1, 0.1), 
+                p=0.5
+            ),
         A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD, max_pixel_value=255.0, p=1.0),
         ToTensorV2(),
     ]

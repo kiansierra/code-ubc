@@ -19,7 +19,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnetv2_s_in21ft1k"
+                "--config-name", "tf_efficientnet_b0_ns"
             ],
             "justMyCode": false
         },
@@ -30,7 +30,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnetv2_s_in21ft1k",
+                "--config-name", "maxvit_tiny_tf_512",
                 "+debug=True"
             ],
             "justMyCode": false
@@ -55,6 +55,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--config-name", "512-0.25",
+                "+image_path=../input/UBC-OCEAN/train_images/4.png"
             ],
             "justMyCode": false
         }
