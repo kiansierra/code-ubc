@@ -10,4 +10,4 @@ empty_threshold:  0.5
 max_tiles: Null
 center_crop: True
 backend: pyvips
-num_processes: 6
+num_processes: 4
