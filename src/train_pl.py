@@ -10,7 +10,15 @@ from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, Mode
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
-from ubc import AugmentationDataset, TimmModel, get_train_transforms, get_valid_transforms, upload_to_wandb
+from ubc import (
+    MODEL_REGISTRY,
+    AugmentationDataset,
+    TimmModel,
+    TimmVITModel,
+    get_train_transforms,
+    get_valid_transforms,
+    upload_to_wandb,
+)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -49,7 +57,7 @@ def train(config: DictConfig) -> None:
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
-    model = TimmModel(config)
+    model = MODEL_REGISTRY.get(config.model.entrypoint)(config)
     config_container = OmegaConf.to_container(config, resolve=True)
     tags = [config.model.backbone, config.dataset.name, f"img_size-{config.img_size}"]
     logger = WandbLogger(

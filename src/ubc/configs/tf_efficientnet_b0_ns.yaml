@@ -7,12 +7,12 @@ defaults:
 
 model:
   entrypoint: TimmModel
-  backbone: tf_efficientnetv2_s_in21ft1k
+  backbone: tf_efficientnet_b0_ns
   pretrained: True
   num_classes: 5
 
 dataset:
-  name: train-crops
+  name: train-MT-None_SS-512_RF-0.5
 
 augmentations:
   train:

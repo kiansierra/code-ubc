@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
+from fvcore.common.registry import Registry
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
@@ -11,6 +12,9 @@ from torch.nn import functional as F
 from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
 
+__all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY"]
+
+MODEL_REGISTRY = Registry('MODELS')
 
 class GeM(nn.Module):
     def __init__(self, p=3, eps=1e-6):
@@ -90,7 +94,7 @@ class BaseLightningModel(pl.LightningModule):
         scheduler = get_scheduler(self.config, optimizer)
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
-
+@MODEL_REGISTRY.register()
 class TimmModel(BaseLightningModel):
     def __init__(self, config) -> None:
         super().__init__(config)
@@ -108,4 +112,22 @@ class TimmModel(BaseLightningModel):
         pooled_features = self.pooling(features).flatten(1)
         logits = self.linear(pooled_features)
         output = {"logits": logits, "features": pooled_features, "probs": self.softmax(logits)}
+        return output
+
+@MODEL_REGISTRY.register()    
+class TimmVITModel(BaseLightningModel):
+    def __init__(self, config) -> None:
+        super().__init__(config)
+        model_config = config["model"]
+        self.backbone = timm.create_model(model_config["backbone"], pretrained=model_config["pretrained"], num_classes=0)
+        in_features = self.backbone.num_features
+        # self.backbone.classifier = nn.Identity()
+        # self.backbone.global_pool = nn.Identity()
+        self.linear = nn.Linear(in_features, model_config["num_classes"])
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, images):
+        features = self.backbone(images)
+        logits = self.linear(features)
+        output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
         return output
