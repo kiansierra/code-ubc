@@ -14,7 +14,8 @@ from .optimization_utils import get_optimizer, get_scheduler
 
 __all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY"]
 
-MODEL_REGISTRY = Registry('MODELS')
+MODEL_REGISTRY = Registry("MODELS")
+
 
 class GeM(nn.Module):
     def __init__(self, p=3, eps=1e-6):
@@ -94,6 +95,7 @@ class BaseLightningModel(pl.LightningModule):
         scheduler = get_scheduler(self.config, optimizer)
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
+
 @MODEL_REGISTRY.register()
 class TimmModel(BaseLightningModel):
     def __init__(self, config) -> None:
@@ -114,12 +116,15 @@ class TimmModel(BaseLightningModel):
         output = {"logits": logits, "features": pooled_features, "probs": self.softmax(logits)}
         return output
 
-@MODEL_REGISTRY.register()    
+
+@MODEL_REGISTRY.register()
 class TimmVITModel(BaseLightningModel):
     def __init__(self, config) -> None:
         super().__init__(config)
         model_config = config["model"]
-        self.backbone = timm.create_model(model_config["backbone"], pretrained=model_config["pretrained"], num_classes=0)
+        self.backbone = timm.create_model(
+            model_config["backbone"], pretrained=model_config["pretrained"], num_classes=0
+        )
         in_features = self.backbone.num_features
         # self.backbone.classifier = nn.Identity()
         # self.backbone.global_pool = nn.Identity()

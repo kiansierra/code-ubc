@@ -13,8 +13,6 @@ from torch.utils.data import DataLoader
 from ubc import (
     MODEL_REGISTRY,
     AugmentationDataset,
-    TimmModel,
-    TimmVITModel,
     get_train_transforms,
     get_valid_transforms,
     upload_to_wandb,
