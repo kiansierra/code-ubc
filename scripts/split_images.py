@@ -14,7 +14,6 @@ import numpy as np
 import pyvips
 from loguru import logger
 from omegaconf import DictConfig
-
 from ubc import PyVipsProcessor, TorchProcessor
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
@@ -45,6 +44,7 @@ def main(config:DictConfig) -> None:
     logger.info(f"Processing {config.image_folder} total files {len(all_images)} started at {time.ctime()}")
     with mp.Pool(processes=config.num_processes) as pool:
         pool.map(processor.run, all_images)
+    time_elapsed = time.time() - start_time
     logger.info(f"Finished processing {config.image_folder} in {time_elapsed/60:.2d} minutes")
     
     
