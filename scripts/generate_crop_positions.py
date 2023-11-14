@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
-
 from ubc import extract_components_positions
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
@@ -11,7 +10,7 @@ def get_crop_components(row :Dict[str, Any]):
     if row['aspect_ratio'] >= 1.5:
         return extract_components_positions(row['path'])
     else:
-        return [(0, (row['image_width']-1)/row['image_width'], 0, (row['image_height']-1)/row['image_width'])]
+        return [(0, (row['image_width']-1)/row['image_width'], 0, (row['image_height']-1)/row['image_height'])]
 
 def main():
     train_df = pd.read_parquet(ROOT_DIR / "train.parquet")
