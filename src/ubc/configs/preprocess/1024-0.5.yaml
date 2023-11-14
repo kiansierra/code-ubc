@@ -1,0 +1,13 @@
+base_save_folder:  '../input/UBC-OCEAN-PROCESSED'
+name: MT-${max_tiles}_SS-${split_size}_RF-${resize_factor}
+image_folder: '../input/UBC-OCEAN/train_images'
+save_folder: ${base_save_folder}/${name}
+resize_factor: 0.5
+split_size: 1024
+min_resize:  4000
+extension: 'png'
+empty_threshold:  0.5
+max_tiles: Null
+center_crop: True
+backend: pyvips
+num_processes: 4
