@@ -9,7 +9,7 @@ def extract_components_positions(path, area_threshold: int = 1_000, aspect_ratio
     img = Image.open(path)
     as_ratio = img.size[0] / img.size[1]
     if as_ratio <= aspect_ratio_threshold:
-        return [(0, img.size[0] - 1, 0, img.size[1] - 1)]
+        return [(0, (img.size[0] - 1)/ img.size[0], 0, (img.size[1] - 1)/img.size[1])]
     img = np.array(img)
     mask = np.max(img > 0, axis=-1).astype(np.uint8)
     retval, labels = cv2.connectedComponents(mask)
