@@ -9,12 +9,16 @@ from pathlib import Path
 
 import hydra
 import pandas as pd
+from dotenv import load_dotenv
 from loguru import logger
 from omegaconf import DictConfig
+
 from ubc import ComponentsProcessor
 
-ROOT_DIR = Path("../input/UBC-OCEAN/")
-PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
+load_dotenv()
+
+ROOT_DIR = Path(os.environ.get("ROOT_DIR","../input/UBC-OCEAN/"))
+
 
 def apply_processor(processor:ComponentsProcessor, record):
     processor.run(**record)
@@ -23,7 +27,7 @@ def apply_processor(processor:ComponentsProcessor, record):
 def main(config:DictConfig) -> None:
     save_folder = Path(config.save_folder)
     assert config.get('image_folder'), "Must provide either image_path or image_folder"
-    df = pd.read_parquet(ROOT_DIR / "train-components.parquet")
+    df = pd.read_parquet(config.dataframe_path)
     df_group = df.groupby('image_id', as_index=False)['components'].agg(list).rename(columns={'components': 'crop_position'})
     df_group['path'] = df_group['image_id'].apply(lambda x: str(ROOT_DIR/ 'train_images' / f"{x}.png"))
     records = df_group[['path', 'crop_position']].to_dict("records")

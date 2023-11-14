@@ -1,10 +1,14 @@
+import os
 from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
+from dotenv import load_dotenv
 from ubc import extract_components_positions
 
-ROOT_DIR = Path("../input/UBC-OCEAN/")
+load_dotenv()
+
+ROOT_DIR = Path(os.environ.get("ROOT_DIR","../input/UBC-OCEAN/"))
 
 def get_crop_components(row :Dict[str, Any]):
     if row['aspect_ratio'] >= 1.5:
