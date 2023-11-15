@@ -58,6 +58,30 @@
                 "+image_path=../input/UBC-OCEAN/train_images/4.png"
             ],
             "justMyCode": false
+        },
+        {
+            "name": "Resize Images",
+            "type": "python",
+            "request": "launch",
+            "program": "scripts/resize.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048",
+                "--dataframe-path","../input/UBC-OCEAN/train.parquet"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Crop Images",
+            "type": "python",
+            "request": "launch",
+            "program": "scripts/crop.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048-crops",
+                "--dataframe-path","../input/UBC-OCEAN-PROCESSED/resized-2048/train.parquet"
+            ],
+            "justMyCode": false
         }
     ]
 }
