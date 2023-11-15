@@ -2,7 +2,7 @@ base_save_folder:  '../input/UBC-OCEAN-PROCESSED'
 name: crops-MT-${max_tiles}_SS-${split_size}_RF-${resize_factor}
 image_folder: '../input/UBC-OCEAN/train_images'
 save_folder: ${base_save_folder}/${name}
-dataframe_path: ../input/UBC-OCEAN//train-components.parquet
+dataframe_path: ../input/UBC-OCEAN/train-components.parquet
 resize_factor: 0.5
 split_size: 512
 min_resize:  4000
