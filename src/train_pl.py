@@ -6,17 +6,14 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
-from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
+                                         ModelCheckpoint)
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
-from ubc import (
-    MODEL_REGISTRY,
-    AugmentationDataset,
-    get_train_transforms,
-    get_valid_transforms,
-    upload_to_wandb,
-)
+
+from ubc import (MODEL_REGISTRY, AugmentationDataset, get_train_transforms,
+                 get_valid_transforms, upload_to_wandb)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -43,11 +40,11 @@ def set_debug(config: DictConfig):
             config.trainer.fast_dev_run = True
 
 
-@hydra.main(config_path="ubc/configs", config_name="config", version_base=None)
+@hydra.main(config_path="ubc/configs", config_name="tf_efficientnet_b0_ns", version_base=None)
 def train(config: DictConfig) -> None:
     torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
-    df = pd.read_parquet(ROOT_DIR / f"{config.dataset.name}.parquet")
+    df = pd.read_parquet(config.dataset.path)
     set_debug(config)
     train_df = df[df["fold"] != config["fold"]].reset_index(drop=True)
     valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
@@ -57,7 +54,8 @@ def train(config: DictConfig) -> None:
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     model = MODEL_REGISTRY.get(config.model.entrypoint)(config)
     config_container = OmegaConf.to_container(config, resolve=True)
-    tags = [config.model.backbone, config.dataset.name, f"img_size-{config.img_size}"]
+    dataset_name = Path(config.dataset.path).parent.name
+    tags = [config.model.backbone, dataset_name, f"img_size-{config.img_size}"]
     logger = WandbLogger(
         project="UBC-OCEAN",
         dir=config.output_dir,
@@ -66,6 +64,10 @@ def train(config: DictConfig) -> None:
         offline=config.get("debug", False),
         job_type="train",
     )
+    if config.get("checkpoint_id", False):
+        logger.watch(model, log="gradients", log_freq=10)
+        checkpoint_path = f"{config.output_dir}/{config.checkpoint_id}/last.ckpt"
+        model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
     update_output_dir(config, logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")

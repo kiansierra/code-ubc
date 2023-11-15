@@ -12,7 +12,7 @@ model:
   num_classes: 5
 
 dataset:
-  name: train-MT-None_SS-512_RF-0.5
+  path: ../input/UBC-OCEAN-PROCESSED/resized-2048-crops/train.parquet
 
 augmentations:
   train:
@@ -24,12 +24,12 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 2048
 fold: 0
 monitor: val/MulticlassAccuracy
-batch_size: 16
+batch_size: 4
 num_workers: 12
-
+checkpoint_id: e5hamibo
 lr: 5e-4
 max_steps: 10000
 max_epochs: 50
