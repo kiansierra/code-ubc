@@ -27,13 +27,14 @@ def aggregate_predictions(predictions: Dict[str, torch.Tensor]) -> pd.DataFrame:
     data["image_id"] = predictions["image_id"]
     data = pd.DataFrame(data).groupby("image_id", as_index=False).mean()
     data["pred"] = data[label2idx.keys()].values.argmax(axis=1)
+    data["score"] = data[label2idx.keys()].values.max(axis=1)
     return data
 
 
 def validate(folder: str) -> None:
     torch.set_float32_matmul_precision("medium")
     config = OmegaConf.load(os.path.join(folder, "config.yaml"))
-    df = pd.read_parquet(ROOT_DIR / f"{config.dataset.name}.parquet")
+    df = pd.read_parquet(config.dataset.path)
     valid_df = df.query(f"fold== {config['fold']}").reset_index(drop=True)
     valid_df = valid_df.groupby("image_id").sample(50, replace=True).drop_duplicates("path").reset_index(drop=True)
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
