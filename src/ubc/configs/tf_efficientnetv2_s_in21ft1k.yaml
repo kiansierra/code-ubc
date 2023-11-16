@@ -12,7 +12,7 @@ model:
   num_classes: 5
 
 dataset:
-  name: train-crops
+  path: ../input/UBC-OCEAN-PROCESSED/resized-2048-crops/train.parquet
 
 augmentations:
   train:
@@ -24,10 +24,11 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 2048
 fold: 0
+checkpoint_id: ui2ld6af
 monitor: val/MulticlassAccuracy
-batch_size: 16
+batch_size: 2
 num_workers: 12
 
 lr: 5e-4
