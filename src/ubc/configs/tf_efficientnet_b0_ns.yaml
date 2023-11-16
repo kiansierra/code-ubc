@@ -18,6 +18,8 @@ augmentations:
   train:
     img_size: ${img_size}
     flip:  True
+    blur: True
+    dropout: True
   valid:
     img_size: ${img_size}
 
@@ -27,9 +29,9 @@ output_dir:  ../checkpoints/${name}
 img_size: 2048
 fold: 0
 monitor: val/MulticlassAccuracy
-batch_size: 2
+batch_size: 4
 num_workers: 12
-checkpoint_id: o2uneuur
+checkpoint_id: Null
 lr: 5e-4
 max_steps: 10000
 max_epochs: 50

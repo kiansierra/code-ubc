@@ -30,7 +30,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "maxvit_tiny_tf_512",
+                "--config-name", "tf_efficientnet_b0_ns",
                 "+debug=True"
             ],
             "justMyCode": false
@@ -42,7 +42,7 @@
             "program": "src/validation.py",
             "console": "integratedTerminal",
             "args": [
-                "--folder", "../checkpoints/tf_efficientnet_b0_ns/qyel8x2d"
+                "--folder", "../checkpoints/tf_efficientnet_b0_ns/vn319582"
             ],
             "justMyCode": false
         },
