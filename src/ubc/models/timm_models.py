@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, List, Optional
 
 import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
 from fvcore.common.registry import Registry
+from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
@@ -43,7 +44,7 @@ class GeM(nn.Module):
 
 
 class BaseLightningModel(pl.LightningModule):
-    def __init__(self, config) -> None:
+    def __init__(self, config:DictConfig, weights:Optional[List[int]] = None) -> None:
         super().__init__()
         self.config = config
         model_config = config["model"]
@@ -54,6 +55,7 @@ class BaseLightningModel(pl.LightningModule):
             ClassBalancedAccuracy(num_classes=model_config["num_classes"], average="macro"),
             EpochLoss(),
         )
+        self.loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(weights) if weights else None)
         self.train_metric = metrics.clone(prefix="train/")
         self.val_metric = metrics.clone(prefix="val/")
 
@@ -61,7 +63,7 @@ class BaseLightningModel(pl.LightningModule):
         images = batch["image"]
         labels = batch["label"]
         output = self(images)
-        loss = F.cross_entropy(output["logits"], labels)
+        loss = self.loss_fn(output["logits"], labels)
         self.log("train/loss", loss, prog_bar=True)
         self.train_metric.update(preds=output["probs"], target=labels, loss=loss)
         return loss
@@ -76,7 +78,7 @@ class BaseLightningModel(pl.LightningModule):
         images = batch["image"]
         labels = batch["label"]
         output = self(images)
-        loss = F.cross_entropy(output["logits"], labels)
+        loss = self.loss_fn(output["logits"], labels)
         self.val_metric.update(preds=output["probs"], target=labels, loss=loss)
         return super().validation_step()
 
@@ -98,8 +100,8 @@ class BaseLightningModel(pl.LightningModule):
 
 @MODEL_REGISTRY.register()
 class TimmModel(BaseLightningModel):
-    def __init__(self, config) -> None:
-        super().__init__(config)
+    def __init__(self, config:DictConfig, weights:Optional[List[int]] = None) -> None:
+        super().__init__(config, weights=weights)
         model_config = config["model"]
         self.backbone = timm.create_model(model_config["backbone"], pretrained=model_config["pretrained"])
         in_features = self.backbone.classifier.in_features
@@ -119,8 +121,8 @@ class TimmModel(BaseLightningModel):
 
 @MODEL_REGISTRY.register()
 class TimmVITModel(BaseLightningModel):
-    def __init__(self, config) -> None:
-        super().__init__(config)
+    def __init__(self, config:DictConfig, weights:Optional[List[int]]=None) -> None:
+        super().__init__(config, weights=weights)
         model_config = config["model"]
         self.backbone = timm.create_model(
             model_config["backbone"], pretrained=model_config["pretrained"], num_classes=0

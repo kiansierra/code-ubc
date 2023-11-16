@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import List
 
 import hydra
 import pandas as pd
@@ -13,7 +14,7 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
 from ubc import (MODEL_REGISTRY, AugmentationDataset, get_train_transforms,
-                 get_valid_transforms, upload_to_wandb)
+                 get_valid_transforms, label2idx, upload_to_wandb)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -39,6 +40,10 @@ def set_debug(config: DictConfig):
             config.trainer.devices = 1
             config.trainer.fast_dev_run = True
 
+def get_class_weights(df: pd.DataFrame) -> List[int]:
+    class_counts = df["label"].map(label2idx).value_counts().sort_index()
+    class_weights = class_counts / class_counts.sum() 
+    return class_weights.tolist()
 
 @hydra.main(config_path="ubc/configs", config_name="tf_efficientnetv2_s_in21ft1k", version_base=None)
 def train(config: DictConfig) -> None:
@@ -52,7 +57,8 @@ def train(config: DictConfig) -> None:
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
-    model = MODEL_REGISTRY.get(config.model.entrypoint)(config)
+    weights = get_class_weights(train_df)
+    model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=weights)
     config_container = OmegaConf.to_container(config, resolve=True)
     dataset_name = Path(config.dataset.path).parent.name
     tags = [config.model.backbone, dataset_name, f"img_size-{config.img_size}"]
