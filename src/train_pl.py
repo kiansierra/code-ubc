@@ -40,7 +40,7 @@ def set_debug(config: DictConfig):
             config.trainer.fast_dev_run = True
 
 
-@hydra.main(config_path="ubc/configs", config_name="tf_efficientnet_b0_ns", version_base=None)
+@hydra.main(config_path="ubc/configs", config_name="tf_efficientnetv2_s_in21ft1k", version_base=None)
 def train(config: DictConfig) -> None:
     torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
@@ -65,9 +65,9 @@ def train(config: DictConfig) -> None:
         job_type="train",
     )
     if config.get("checkpoint_id", False):
-        logger.watch(model, log="gradients", log_freq=10)
         checkpoint_path = f"{config.output_dir}/{config.checkpoint_id}/last.ckpt"
         model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+        logger.watch(model, log="gradients", log_freq=10)
     update_output_dir(config, logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
