@@ -21,13 +21,16 @@ def get_dropouts():
 def get_train_transforms(config: DictConfig) -> A.Compose:
     transforms = [
         A.Resize(config.img_size, config.img_size),
-        get_blurs() if config.get("blur", False) else None,
-        get_dropouts() if config.get("dropout", False) else None,
         A.HorizontalFlip(p=0.5) if config.get("flip", False) else None,
         A.VerticalFlip(p=0.5) if config.get("flip", False) else None,
-        A.Rotate(limit=180, p=0.5) if config.get("rotate", False) else None,
+        A.ShiftScaleRotate(shift_limit=0.1, 
+                           scale_limit=0.15, 
+                           rotate_limit=60, 
+                           p=0.5),
         A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
         A.RandomBrightnessContrast(brightness_limit=(-0.1, 0.1), contrast_limit=(-0.1, 0.1), p=0.5),
+        get_blurs() if config.get("blur", False) else None,
+        get_dropouts() if config.get("dropout", False) else None,
         A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD, max_pixel_value=255.0, p=1.0),
         ToTensorV2(),
     ]

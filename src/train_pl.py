@@ -42,7 +42,8 @@ def set_debug(config: DictConfig):
 
 def get_class_weights(df: pd.DataFrame) -> List[int]:
     class_counts = df["label"].map(label2idx).value_counts().sort_index()
-    class_weights = class_counts / class_counts.sum() 
+    inverse_class_counts = 1 / class_counts
+    class_weights = inverse_class_counts / inverse_class_counts.sum() 
     return class_weights.tolist()
 
 @hydra.main(config_path="ubc/configs", config_name="tf_efficientnetv2_s_in21ft1k", version_base=None)
@@ -59,6 +60,7 @@ def train(config: DictConfig) -> None:
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     weights = get_class_weights(train_df)
     model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=weights)
+    config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
     config_container = OmegaConf.to_container(config, resolve=True)
     dataset_name = Path(config.dataset.path).parent.name
     tags = [config.model.backbone, dataset_name, f"img_size-{config.img_size}"]
@@ -77,10 +79,9 @@ def train(config: DictConfig) -> None:
     update_output_dir(config, logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
-    early_stopping = EarlyStopping(monitor=config["monitor"], patience=5, mode="max")
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=config.output_dir, monitor=config["monitor"], mode="max", save_last=True, save_top_k=2
-    )
+    early_stopping = EarlyStopping(monitor=config["monitor"], patience=10, mode="max")
+    checkpoint_callback = ModelCheckpoint(filename='best',dirpath=config.output_dir, monitor=config["monitor"],
+                                          mode="max", save_last=True, save_top_k=1)
     trainer = pl.Trainer(
         **config["trainer"], logger=logger, callbacks=[lr_monitor, early_stopping, checkpoint_callback]
     )
