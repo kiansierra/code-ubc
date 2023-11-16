@@ -2,7 +2,7 @@ defaults:
   - trainer: trainer_pl
   - optimizer: adamw
   - scheduler: hf_cosine_with_restarts
-  - dataloader: dataloader
+  - dataloader: dataloaderp
   - _self_
 
 model:

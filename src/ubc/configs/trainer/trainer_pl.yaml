@@ -1,5 +1,5 @@
 precision: bf16
-accumulate_grad_batches: 4
+accumulate_grad_batches: ${accumulate_grad_batches}
 gradient_clip_val: 1.0
 max_steps : ${max_steps}
 min_epochs: 20
