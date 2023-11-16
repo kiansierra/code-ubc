@@ -65,7 +65,7 @@ def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
     df_crop = pd.DataFrame()
     df_crop["image_id"] = [image_id] * len(sxs)
     df_crop["image_size"] = [image.size] * len(sxs)
-    df_crop["file_path"] = file_paths
+    df_crop["path"] = file_paths
     df_crop["sx"] = sxs
     df_crop["ex"] = exs
     df_crop["sy"] = sys
@@ -85,7 +85,7 @@ def crop(row, output_folder):
     return get_cropped_images(row['path'], row['image_id'], output_folder)
 
 
-def main():
+def main() -> None:
     args = args_parser()
     df = pd.read_parquet(args.dataframe_path)
     records = df.to_dict('records')
@@ -100,7 +100,7 @@ def main():
     output_df = pd.concat(outputs)
     output_df['component'] = output_df.index
     output_df.reset_index(drop=True, inplace=True)
-    output_df = output_df.merge(df, on='image_id', how='left')
+    output_df = output_df.merge(df.rename(columns={'path': 'crop_path'}), on='image_id', how='left')
     output_df.to_parquet(f"{args.output_folder}/train.parquet")
     
 if __name__ == '__main__':
