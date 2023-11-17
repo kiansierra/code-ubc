@@ -1,4 +1,5 @@
 import os
+from copy import copy, deepcopy
 from pathlib import Path
 from typing import List
 
@@ -6,6 +7,8 @@ import hydra
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from accelerate import Accelerator
+from loguru import logger
 from omegaconf import DictConfig, OmegaConf, open_dict
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
@@ -21,6 +24,25 @@ from ubc import (
 )
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
+
+class Trainer:
+    
+    
+    def __init__(self, accelerator, model, train_dataloader, valid_dataloader) -> None:
+        self.accelerator = accelerator
+        optimizer, scheduler = model.configure_optimizers()
+        optimizer = optimizer[0]
+        scheduler = scheduler['scheduler']
+        train_dataloader, valid_dataloader, optimizer, model = accelerator.prepare(train_dataloader, valid_dataloader, optimizer, model)
+        self.train_dataloader = train_dataloader
+        self.valid_dataloader = valid_dataloader
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.model = model
+    
+    def train_epoch(self):
+        for num, batch in enumerate(self.train_dataloader):
+            self.model.train_step(batch, num)
 
 
 @rank_zero_only
@@ -51,7 +73,28 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
     return class_weights.tolist()
 
 @hydra.main(config_path="ubc/configs", config_name="tf_efficientnetv2_s_in21ft1k", version_base=None)
-def train(config: DictConfig) -> None:
+def train_folds(config: DictConfig) -> None:
+    if isinstance(config.fold, int):
+        return train_img_size(config)
+    for fold in config.fold:
+        fold_config = deepcopy(config)
+        fold_config.fold = fold
+        train_img_size(fold_config)
+        
+def train_img_size(config: DictConfig) -> None:
+    if isinstance(config.img_size, int):
+        return train_once(config)
+    new_ckpt = config.checkpoint_id
+    for img_size in config.img_size:
+        img_size_config = deepcopy(config)
+        config.checkpoint_id = new_ckpt
+        img_size_config.img_size = img_size
+        new_ckpt = train_once(img_size_config)
+        new_ckpt = Path(new_ckpt).name
+        
+
+
+def train_once(config: DictConfig) -> None:
     torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
     df = pd.read_parquet(config.dataset.path)
@@ -68,7 +111,7 @@ def train(config: DictConfig) -> None:
     config_container = OmegaConf.to_container(config, resolve=True)
     dataset_name = Path(config.dataset.path).parent.name
     tags = [config.model.backbone, dataset_name, f"img_size-{config.img_size}"]
-    logger = WandbLogger(
+    wandb_logger = WandbLogger(
         project="UBC-OCEAN",
         dir=config.output_dir,
         tags=tags,
@@ -79,21 +122,22 @@ def train(config: DictConfig) -> None:
     if config.get("checkpoint_id", False):
         checkpoint_path = f"{config.output_dir}/{config.checkpoint_id}/last.ckpt"
         model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
-        logger.watch(model, log="gradients", log_freq=10)
-    update_output_dir(config, logger)
+        logger.debug(f"Loaded checkpoint {checkpoint_path}")
+        wandb_logger.watch(model, log="gradients", log_freq=10)
+    update_output_dir(config, wandb_logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
     early_stopping = EarlyStopping(monitor=config["monitor"], patience=10, mode="max")
     checkpoint_callback = ModelCheckpoint(filename='best',dirpath=config.output_dir, monitor=config["monitor"],
                                           mode="max", save_last=True, save_top_k=1)
     trainer = pl.Trainer(
-        **config["trainer"], logger=logger, callbacks=[lr_monitor, early_stopping, checkpoint_callback]
+        **config["trainer"], logger=wandb_logger, callbacks=[lr_monitor, early_stopping, checkpoint_callback]
     )
     trainer.fit(model, train_dataloader, valid_dataloader)
     rank_zero_only(upload_to_wandb)(config.output_dir, name=config.model.backbone)
-    
+    return config.output_dir
 
 
 if __name__ == "__main__":
-    train()  # pylint: disable=no-value-for-parameter
+    train_folds()  # pylint: disable=no-value-for-parameter
     print("Done!")
