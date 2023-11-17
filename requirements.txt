@@ -22,3 +22,4 @@ transformers
 timm
 typing_extensions
 wandb
+lightning
