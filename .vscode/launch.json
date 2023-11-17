@@ -48,7 +48,7 @@
             "program": "src/validation.py",
             "console": "integratedTerminal",
             "args": [
-                "--folder", "../checkpoints/tf_efficientnet_b0_ns/vn319582"
+                "--folder", "../checkpoints/tf_efficientnet_b0_ns/62xjwz7w"
             ],
             "justMyCode": false
         },
