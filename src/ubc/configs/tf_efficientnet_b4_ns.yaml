@@ -7,7 +7,7 @@ defaults:
 
 model:
   entrypoint: TimmModel
-  backbone: tf_efficientnet_b0_ns
+  backbone: tf_efficientnet_b4_ns
   pretrained: True
   num_classes: 5
 
@@ -28,12 +28,12 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: [512, 1024, 2048]
 fold: 0
-checkpoint_id: Null
+checkpoint_id: rwqd9ds0
 monitor: val/MulticlassAccuracy
 batch_size: 2
 num_workers: 6
 
 lr: 5e-4
-max_steps: 10000
+max_steps: Null
 max_epochs: 50
 accumulate_grad_batches: 1
