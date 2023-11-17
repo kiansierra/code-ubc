@@ -23,17 +23,17 @@ augmentations:
   valid:
     img_size: ${img_size}
 
-
+seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-monitor: val/MulticlassAccuracy
-checkpoint_id: 8ldl6i8j
-seed: 42
+img_size: [512, 1024, 2048]
 fold: 0
-img_size: 2048
-batch_size: 4
-num_workers: 8
-max_steps: Null
+checkpoint_id: ui2ld6af
+monitor: val/MulticlassAccuracy
+batch_size: 2
+num_workers: 12
+
+lr: 5e-4
+max_steps: 10000
 max_epochs: 50
 accumulate_grad_batches: 1
-lr: 2e-5
