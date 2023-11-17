@@ -50,7 +50,7 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
     class_weights = inverse_class_counts / inverse_class_counts.sum() 
     return class_weights.tolist()
 
-@hydra.main(config_path="ubc/configs", config_name="tf_efficientnetv2_s_in21ft1k", version_base=None)
+@hydra.main(config_path="ubc/configs", config_name="tf_efficientnet_b4_ns", version_base=None)
 def train(config: DictConfig) -> None:
     torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
@@ -79,7 +79,7 @@ def train(config: DictConfig) -> None:
     if config.get("checkpoint_id", False):
         checkpoint_path = f"{config.output_dir}/{config.checkpoint_id}/last.ckpt"
         model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
-        logger.watch(model, log="gradients", log_freq=10)
+        # logger.watch(model, log="gradients", log_freq=10)
     update_output_dir(config, logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
