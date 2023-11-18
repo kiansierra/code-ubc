@@ -37,4 +37,6 @@ class AugmentationDataset(Dataset):
         output = {"image_id": row["image_id"], "image": image}
         if "label" in row:
             output["label"] = label2idx[row["label"]]
+        if "is_tma" in row:
+            output["is_tma"] = int(row["is_tma"])
         return output
