@@ -72,9 +72,6 @@
             "program": "scripts/resize.py",
             "console": "integratedTerminal",
             "args": [
-                "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048",
-                "--dataframe-path","../input/UBC-OCEAN/train.parquet",
-                "--artifact-name", "train_folds.parquet"
             ],
             "justMyCode": false
         },
@@ -85,9 +82,6 @@
             "program": "scripts/crop.py",
             "console": "integratedTerminal",
             "args": [
-                "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048-crops",
-                "--dataframe-path","../input/UBC-OCEAN-PROCESSED/resized-2048/train.parquet",
-                "--artifact-name", "train-resize.parquet"
             ],
             "justMyCode": false
         }

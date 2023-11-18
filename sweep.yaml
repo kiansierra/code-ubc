@@ -15,7 +15,7 @@ parameters:
   scheduler:
     values: ["cosine_annealing", "hf_constant_with_warmup", "hf_cosine_with_restarts"]
   img_size:
-    values: [2048]
+    values: [512]
   augmentations.train.flip:
     values: [True, False]
   augmentations.train.blur:
