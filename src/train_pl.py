@@ -54,8 +54,21 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
 def train(config: DictConfig) -> None:
     torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
-    df = pd.read_parquet(config.dataset.path)
+    config_container = OmegaConf.to_container(config, resolve=True)
     set_debug(config)
+    tags = [config.model.backbone, config.dataset.artifact_name, f"img_size-{config.img_size}"]
+    logger = WandbLogger(
+        project="UBC-OCEAN",
+        dir=config.output_dir,
+        tags=tags,
+        config=config_container,
+        offline=config.get("debug", False),
+        job_type="train",
+    )
+    artifact = logger.experiment.use_artifact(f"{config.dataset.artifact_name}:latest", type="dataset")
+    artifact_dir = artifact.download()
+    dataset_path = f"{artifact_dir}/{config.dataset.artifact_name}"
+    df = pd.read_parquet(dataset_path)
     train_df = df[df["fold"] != config["fold"]].reset_index(drop=True)
     valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
     train_ds = AugmentationDataset(train_df, augmentation=get_train_transforms(config))
@@ -65,17 +78,7 @@ def train(config: DictConfig) -> None:
     weights = get_class_weights(train_df)
     model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=weights)
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
-    config_container = OmegaConf.to_container(config, resolve=True)
-    dataset_name = Path(config.dataset.path).parent.name
-    tags = [config.model.backbone, dataset_name, f"img_size-{config.img_size}"]
-    logger = WandbLogger(
-        project="UBC-OCEAN",
-        dir=config.output_dir,
-        tags=tags,
-        config=config_container,
-        offline=config.get("debug", False),
-        job_type="train",
-    )
+    
     if config.get("checkpoint_id", False):
         checkpoint_path = f"{config.output_dir}/{config.checkpoint_id}/last.ckpt"
         model.load_state_dict(torch.load(checkpoint_path)['state_dict'])

@@ -16,10 +16,10 @@
             "name": "Train",
             "type": "python",
             "request": "launch",
-            "program": "src/train_pl_multiscale.py",
+            "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnetv2_s_in21ft1k"
+                "--config-name", "tf_efficientnet_b4_ns"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"
@@ -73,7 +73,8 @@
             "console": "integratedTerminal",
             "args": [
                 "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048",
-                "--dataframe-path","../input/UBC-OCEAN/train.parquet"
+                "--dataframe-path","../input/UBC-OCEAN/train.parquet",
+                "--artifact-name", "train_folds.parquet"
             ],
             "justMyCode": false
         },
@@ -85,7 +86,8 @@
             "console": "integratedTerminal",
             "args": [
                 "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048-crops",
-                "--dataframe-path","../input/UBC-OCEAN-PROCESSED/resized-2048/train.parquet"
+                "--dataframe-path","../input/UBC-OCEAN-PROCESSED/resized-2048/train.parquet",
+                "--artifact-name", "train-resize.parquet"
             ],
             "justMyCode": false
         }
