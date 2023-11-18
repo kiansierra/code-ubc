@@ -1,21 +1,23 @@
+import typing
 from typing import Any, List, Optional
 
 import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
-from fvcore.common.registry import Registry
+
+# from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
 
+from ..utils import Registry
 from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
 
 __all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY"]
 
-MODEL_REGISTRY = Registry("MODELS")
 
 
 class GeM(nn.Module):
@@ -97,6 +99,7 @@ class BaseLightningModel(pl.LightningModule):
         scheduler = get_scheduler(self.config, optimizer)
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
+MODEL_REGISTRY = Registry("MODELS", BaseLightningModel)
 
 @MODEL_REGISTRY.register()
 class TimmModel(BaseLightningModel):
