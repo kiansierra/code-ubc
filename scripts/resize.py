@@ -12,9 +12,9 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from PIL import Image
+from ubc import upload_to_wandb
 
 import wandb
-from ubc import upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -24,6 +24,7 @@ def args_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--imgsize',   type=int,   default=2048)
     parser.add_argument('--output-folder',   type=str,   default="output file path")
+    parser.add_argument('--output-name',   type=str,   default="train-resize.parquet")
     parser.add_argument('--column-name',   type=str,   default="thumbnail_path")
     parser.add_argument('--dataframe-path',   type=str,   default="Dataframe path")
     parser.add_argument('--artifact-name',   type=str,   default=None)
@@ -73,11 +74,12 @@ def main():
         pool.map(resize_partial, records)
     df.drop(columns=['path'], inplace=True)
     df.rename(columns={'output_path': 'path'}, inplace=True)
-    df.to_parquet(f"{args.output_folder}/train-resize.parquet")
+    df.to_parquet(f"{args.output_folder}/{args.output_name}")
     if args.artifact_name:
-        artifact = upload_to_wandb(args.output_folder, 'train-resize.parquet', pattern="*.parquet",
+        artifact = upload_to_wandb(args.output_folder, args.output_name, pattern="*.parquet",
                                    artifact_type='dataset', end_wandb_run=False, return_artifact=True)
-        artifact.add(wandb.Table(dataframe=df), name='train-resize')
+        table_name = args.output_name.replace('.parquet', '')
+        artifact.add(wandb.Table(dataframe=df), name=table_name)
         run.log_artifact(artifact)
         run.finish()
     

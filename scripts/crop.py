@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from PIL import Image
-from ubc import upload_to_wandb
 
 import wandb
+from ubc import upload_to_wandb
 
 
 def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
@@ -82,6 +82,7 @@ def args_parser():
     parser.add_argument('--dataframe-path',   type=str,   default="Dataframe path")
     parser.add_argument('--artifact-name',   type=str,   default=None)
     parser.add_argument('--num_processes',   type=int,   default=4)
+    parser.add_argument('--output-name',   type=str,   default="train-crop.parquet")
     args = parser.parse_args()
     return args
 
@@ -110,11 +111,12 @@ def main() -> None:
     output_df['component'] = output_df.index
     output_df.reset_index(drop=True, inplace=True)
     output_df = output_df.merge(df.rename(columns={'path': 'crop_path'}), on='image_id', how='left')
-    output_df.to_parquet(f"{args.output_folder}/train-crop.parquet")
+    output_df.to_parquet(f"{args.output_folder}/{args.output_name}")
     if args.artifact_name:
-        artifact = upload_to_wandb(args.output_folder, 'train-crop.parquet', pattern="*.parquet",
+        artifact = upload_to_wandb(args.output_folder, args.output_name, pattern="*.parquet",
                                    artifact_type='dataset', end_wandb_run=False, return_artifact=True)
-        artifact.add(wandb.Table(dataframe=output_df), name='train-crop')
+        table_name = args.output_name.replace('.parquet', '')
+        artifact.add(wandb.Table(dataframe=output_df), name=table_name)
         run.log_artifact(artifact)
         run.finish()
     
