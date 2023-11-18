@@ -1,20 +1,22 @@
-from typing import Any
+import typing
+from typing import Any, List, Optional
 
 import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
-from fvcore.common.registry import Registry
+# from fvcore.common.registry import Registry
+from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
 
+from ..utils import Registry
 from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
 
 __all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY"]
 
-MODEL_REGISTRY = Registry("MODELS")
 
 
 class GeM(nn.Module):
@@ -43,9 +45,11 @@ class GeM(nn.Module):
 
 
 class BaseLightningModel(pl.LightningModule):
-    def __init__(self, config) -> None:
+    def __init__(self, config:DictConfig, weights:Optional[List[int]] = None) -> None:
         super().__init__()
         self.config = config
+        self.example_input_array = torch.zeros((1, 3, config["img_size"], config["img_size"]))
+        
         model_config = config["model"]
         metrics = tm.MetricCollection(
             tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
@@ -54,36 +58,62 @@ class BaseLightningModel(pl.LightningModule):
             ClassBalancedAccuracy(num_classes=model_config["num_classes"], average="macro"),
             EpochLoss(),
         )
-        self.train_metric = metrics.clone(prefix="train/")
-        self.val_metric = metrics.clone(prefix="val/")
+        self.loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(weights) if weights else None, reduction="none")
+        self.train_metric = metrics.clone(prefix="train/wsi_")
+        self.train_metric_tma = metrics.clone(prefix="train/tma_")
+        self.val_metric = metrics.clone(prefix="val/wsi_")
+        self.val_metric_tma = metrics.clone(prefix="val/tma_")
+        
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         images = batch["image"]
         labels = batch["label"]
         output = self(images)
-        loss = F.cross_entropy(output["logits"], labels)
-        self.log("train/loss", loss, prog_bar=True)
-        self.train_metric.update(preds=output["probs"], target=labels, loss=loss)
-        return loss
+        loss = self.loss_fn(output["logits"], labels)
+        self.log("train/loss", loss.mean(), prog_bar=True)
+        tma_index = torch.where(batch["is_tma"] == 1)[0]
+        wsi_index = torch.where(batch["is_tma"] == 0)[0]
+        if len(wsi_index):
+            self.train_metric.update(preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean())
+        if len(tma_index):
+            self.train_metric_tma.update(preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean())
+        return loss.mean()
 
     def on_train_epoch_end(self) -> None:
         metrics = self.train_metric.compute()
+        metrics_tma = self.train_metric_tma.compute()
+        
         self.train_metric.reset()
-        self.log_dict(metrics, prog_bar=True, sync_dist=True)
+        self.train_metric_tma.reset()
+        
+        averaged_metrics = {k.replace('wsi_', ''):(0.5*v + 0.5 * metrics_tma[k.replace('wsi_', 'tma_')]) for k,v in metrics.items()}
+        all_metrics = {**averaged_metrics, **metrics, **metrics_tma}
+        self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
         return super().on_train_epoch_end()
 
     def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
         images = batch["image"]
         labels = batch["label"]
         output = self(images)
-        loss = F.cross_entropy(output["logits"], labels)
-        self.val_metric.update(preds=output["probs"], target=labels, loss=loss)
+        loss = self.loss_fn(output["logits"], labels)
+        tma_index = torch.where(batch["is_tma"] == 1)[0]
+        wsi_index = torch.where(batch["is_tma"] == 0)[0]
+        if len(wsi_index):
+            self.val_metric.update(preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean())
+        if len(tma_index):
+            self.val_metric_tma.update(preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean())
         return super().validation_step()
 
     def on_validation_epoch_end(self) -> None:
         metrics = self.val_metric.compute()
+        metrics_tma = self.val_metric_tma.compute()
+
         self.val_metric.reset()
-        self.log_dict(metrics, prog_bar=True, sync_dist=True)
+        self.val_metric_tma.reset()
+        
+        averaged_metrics = {k.replace('wsi_', ''):(0.5*v + 0.5 * metrics_tma[k.replace('wsi_', 'tma_')]) for k,v in metrics.items()}
+        all_metrics = {**averaged_metrics, **metrics, **metrics_tma}
+        self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
         return super().on_validation_epoch_end()
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
@@ -95,11 +125,12 @@ class BaseLightningModel(pl.LightningModule):
         scheduler = get_scheduler(self.config, optimizer)
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
+MODEL_REGISTRY = Registry("MODELS", BaseLightningModel)
 
 @MODEL_REGISTRY.register()
 class TimmModel(BaseLightningModel):
-    def __init__(self, config) -> None:
-        super().__init__(config)
+    def __init__(self, config:DictConfig, weights:Optional[List[int]] = None) -> None:
+        super().__init__(config, weights=weights)
         model_config = config["model"]
         self.backbone = timm.create_model(model_config["backbone"], pretrained=model_config["pretrained"])
         in_features = self.backbone.classifier.in_features
@@ -119,8 +150,8 @@ class TimmModel(BaseLightningModel):
 
 @MODEL_REGISTRY.register()
 class TimmVITModel(BaseLightningModel):
-    def __init__(self, config) -> None:
-        super().__init__(config)
+    def __init__(self, config:DictConfig, weights:Optional[List[int]]=None) -> None:
+        super().__init__(config, weights=weights)
         model_config = config["model"]
         self.backbone = timm.create_model(
             model_config["backbone"], pretrained=model_config["pretrained"], num_classes=0

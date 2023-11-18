@@ -1,0 +1,39 @@
+program: src/train_pl.py
+method: bayes
+metric:
+  name: val/MulticlassAccuracy
+  goal: maximize
+parameters:
+  lr:
+    min: 5.0e-6
+    max: 1.0e-3
+  optimizer:
+    values: ["adam", "adamw"]
+  optimizer.weight_decay:
+    min: 1.0e-6
+    max: 1.0e-3
+  scheduler:
+    values: ["cosine_annealing", "hf_constant_with_warmup", "hf_cosine_with_restarts"]
+  img_size:
+    values: [512]
+  augmentations.train.flip:
+    values: [True, False]
+  augmentations.train.blur:
+    values: [True, False]
+  augmentations.train.dropout:
+    values: [True, False]
+  accumulate_grad_batches:
+    values: [1, 2, 4]
+  batch_size:
+    values: [2, 4]
+  trainer.gradient_clip_val:
+    min: 0.0
+    max: 2.0
+
+  
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args_no_hyphens}

@@ -1,7 +1,7 @@
 defaults:
   - trainer: trainer_pl
-  - optimizer: adamw
-  - scheduler: hf_cosine_with_restarts
+  - optimizer: adam
+  - scheduler: cosine_annealing
   - dataloader: dataloader
   - _self_
 
@@ -18,19 +18,22 @@ augmentations:
   train:
     img_size: ${img_size}
     flip:  True
+    blur: True
+    dropout: True
   valid:
     img_size: ${img_size}
 
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 2048
+img_size: [512, 1024, 2048]
 fold: 0
-checkpoint_id: ui2ld6af
+checkpoint_id: Null
 monitor: val/MulticlassAccuracy
 batch_size: 2
-num_workers: 12
+num_workers: 6
 
 lr: 5e-4
 max_steps: 10000
 max_epochs: 50
+accumulate_grad_batches: 1

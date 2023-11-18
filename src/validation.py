@@ -40,7 +40,7 @@ def validate(folder: str) -> None:
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
-    model = TimmModel.load_from_checkpoint(os.path.join(folder, "last.ckpt"), config=config)
+    model = TimmModel.load_from_checkpoint(os.path.join(folder, "best.ckpt"), config=config, strict=False)
     trainer = pl.Trainer(devices=1)
     predictions = trainer.predict(model, valid_dataloader)
     predictions = {k: torch.cat([elem[k] for elem in predictions], dim=0) for k in predictions[0].keys()}

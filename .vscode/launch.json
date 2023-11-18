@@ -19,8 +19,11 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnet_b0_ns"
+                "--config-name", "tf_efficientnet_b4_ns"
             ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1"
+            },
             "justMyCode": false
         },
         {
@@ -30,9 +33,12 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "maxvit_tiny_tf_512",
+                "--config-name", "tf_efficientnet_b0_ns",
                 "+debug=True"
             ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
             "justMyCode": false
         },
         {
@@ -42,7 +48,7 @@
             "program": "src/validation.py",
             "console": "integratedTerminal",
             "args": [
-                "--folder", "../checkpoints/tf_efficientnet_b0_ns/qyel8x2d"
+                "--folder", "../checkpoints/tf_efficientnet_b0_ns/62xjwz7w"
             ],
             "justMyCode": false
         },
@@ -66,8 +72,6 @@
             "program": "scripts/resize.py",
             "console": "integratedTerminal",
             "args": [
-                "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048",
-                "--dataframe-path","../input/UBC-OCEAN/train.parquet"
             ],
             "justMyCode": false
         },
@@ -78,8 +82,6 @@
             "program": "scripts/crop.py",
             "console": "integratedTerminal",
             "args": [
-                "--output-folder", "../input/UBC-OCEAN-PROCESSED/resized-2048-crops",
-                "--dataframe-path","../input/UBC-OCEAN-PROCESSED/resized-2048/train.parquet"
             ],
             "justMyCode": false
         }

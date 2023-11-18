@@ -1,0 +1,6 @@
+imgsize: 2048
+output_folder: ../input/UBC-OCEAN-PROCESSED/crop-${imgsize}
+output_name: train-crop.parquet
+dataframe_path: Null
+artifact_name: train-resize.parquet
+num_processes: 4
