@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import List
-
+import wandb 
 import hydra
 import pandas as pd
 import pytorch_lightning as pl
@@ -80,7 +80,12 @@ def train(config: DictConfig) -> None:
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
     
     if config.get("checkpoint_id", False):
-        checkpoint_path = f"{config.output_dir}/{config.checkpoint_id}/last.ckpt"
+        api = wandb.Api()
+        run = api.run(f'UBC-OCEAN/{config.checkpoint_id}')
+        ckpt_artifact_name = [artifact.name for artifact in run.logged_artifacts() if artifact.name.startswith(config.model.backbone)][0]
+        ckpt_artifact = logger.experiment.use_artifact(ckpt_artifact_name, type="model")
+        ckpt_artifact_dir = ckpt_artifact.download()
+        checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
         model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
         # logger.watch(model, log="gradients", log_freq=10)
     update_output_dir(config, logger)
