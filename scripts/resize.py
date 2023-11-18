@@ -13,6 +13,9 @@ import pandas as pd
 from loguru import logger
 from PIL import Image
 
+import wandb
+from ubc import upload_to_wandb
+
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
@@ -21,12 +24,17 @@ def args_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--imgsize',   type=int,   default=2048)
     parser.add_argument('--output-folder',   type=str,   default="output file path")
+    parser.add_argument('--column-name',   type=str,   default="thumbnail_path")
     parser.add_argument('--dataframe-path',   type=str,   default="Dataframe path")
+    parser.add_argument('--artifact-name',   type=str,   default=None)
     parser.add_argument('--num_processes',   type=int,   default=4)
     args = parser.parse_args()
     return args
 
 def resize(image_path, output_path, imgsize=2048):
+    if os.path.exists(output_path):
+        logger.info(f"skipping {output_path}")
+        return
     image = Image.open( image_path)
     w, h = image.size
 
@@ -49,7 +57,13 @@ def resize_copy(row, image_size=2048):
     
 def main():
     args = args_parser()
+    if args.artifact_name:
+        run = wandb.init(job_type='resize', config=args)
+        artifact = run.use_artifact(f"{args.artifact_name}:latest", type='dataset')
+        artifact_dir = artifact.download()
+        args.dataframe_path = f"{artifact_dir}/{args.artifact_name}"
     df = pd.read_parquet(args.dataframe_path)
+    df['path'] = df[args.column_name]
     df['output_path'] = df['image_id'].apply(lambda x: f"{args.output_folder}/{x}.png")
     records = df.to_dict('records')
     output_folder = Path(args.output_folder)
@@ -59,7 +73,13 @@ def main():
         pool.map(resize_partial, records)
     df.drop(columns=['path'], inplace=True)
     df.rename(columns={'output_path': 'path'}, inplace=True)
-    df.to_parquet(f"{args.output_folder}/train.parquet")
+    df.to_parquet(f"{args.output_folder}/train-resize.parquet")
+    if args.artifact_name:
+        artifact = upload_to_wandb(args.output_folder, 'train-resize.parquet', pattern="*.parquet",
+                                   artifact_type='dataset', end_wandb_run=False, return_artifact=True)
+        artifact.add(wandb.Table(dataframe=df), name='train-resize')
+        run.log_artifact(artifact)
+        run.finish()
     
 if __name__ == '__main__':
     main()

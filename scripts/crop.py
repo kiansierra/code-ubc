@@ -9,6 +9,9 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from PIL import Image
+from ubc import upload_to_wandb
+
+import wandb
 
 
 def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
@@ -77,6 +80,7 @@ def args_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output-folder',   type=str,   default="output file path")
     parser.add_argument('--dataframe-path',   type=str,   default="Dataframe path")
+    parser.add_argument('--artifact-name',   type=str,   default=None)
     parser.add_argument('--num_processes',   type=int,   default=4)
     args = parser.parse_args()
     return args
@@ -87,6 +91,11 @@ def crop(row, output_folder):
 
 def main() -> None:
     args = args_parser()
+    if args.artifact_name:
+        run = wandb.init(job_type='crop', config=args)
+        artifact = run.use_artifact(f"{args.artifact_name}:latest", type='dataset')
+        artifact_dir = artifact.download()
+        args.dataframe_path = f"{artifact_dir}/{args.artifact_name}"
     df = pd.read_parquet(args.dataframe_path)
     records = df.to_dict('records')
     output_folder = Path(args.output_folder)
@@ -101,7 +110,13 @@ def main() -> None:
     output_df['component'] = output_df.index
     output_df.reset_index(drop=True, inplace=True)
     output_df = output_df.merge(df.rename(columns={'path': 'crop_path'}), on='image_id', how='left')
-    output_df.to_parquet(f"{args.output_folder}/train.parquet")
+    output_df.to_parquet(f"{args.output_folder}/train-crop.parquet")
+    if args.artifact_name:
+        artifact = upload_to_wandb(args.output_folder, 'train-crop.parquet', pattern="*.parquet",
+                                   artifact_type='dataset', end_wandb_run=False, return_artifact=True)
+        artifact.add(wandb.Table(dataframe=output_df), name='train-crop')
+        run.log_artifact(artifact)
+        run.finish()
     
 if __name__ == '__main__':
     main()
