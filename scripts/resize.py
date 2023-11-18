@@ -6,7 +6,8 @@ import shutil
 import warnings
 from functools import partial
 from pathlib import Path
-
+import hydra
+from omegaconf import DictConfig, OmegaConf
 import cv2
 import numpy as np
 import pandas as pd
@@ -20,17 +21,6 @@ warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
-def args_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--imgsize',   type=int,   default=2048)
-    parser.add_argument('--output-folder',   type=str,   default="output file path")
-    parser.add_argument('--output-name',   type=str,   default="train-resize.parquet")
-    parser.add_argument('--column-name',   type=str,   default="thumbnail_path")
-    parser.add_argument('--dataframe-path',   type=str,   default="Dataframe path")
-    parser.add_argument('--artifact-name',   type=str,   default=None)
-    parser.add_argument('--num_processes',   type=int,   default=4)
-    args = parser.parse_args()
-    return args
 
 def resize(image_path, output_path, imgsize=2048):
     if os.path.exists(output_path):
@@ -56,32 +46,37 @@ def resize_copy(row, image_size=2048):
     else:
         resize(row['path'], row['output_path'], image_size)
     
-def main():
-    args = args_parser()
-    if args.artifact_name:
-        run = wandb.init(job_type='resize', config=args)
-        artifact = run.use_artifact(f"{args.artifact_name}:latest", type='dataset')
+@hydra.main(config_path="../src/ubc/configs/preprocess", config_name="resize", version_base=None)
+def main(config: DictConfig):
+    if config.artifact_name:
+        config_container = OmegaConf.to_container(config, resolve=True)
+
+        run = wandb.init(job_type='resize', config=config_container)
+        artifact = run.use_artifact(f"{config.artifact_name}:latest", type='dataset')
         artifact_dir = artifact.download()
-        args.dataframe_path = f"{artifact_dir}/{args.artifact_name}"
-    df = pd.read_parquet(args.dataframe_path)
-    df['path'] = df[args.column_name]
-    df['output_path'] = df['image_id'].apply(lambda x: f"{args.output_folder}/{x}.png")
+        config.dataframe_path = f"{artifact_dir}/{config.artifact_name}"
+    df = pd.read_parquet(config.dataframe_path)
+    df['path'] = df[config.column_name]
+    df['output_path'] = df['image_id'].apply(lambda x: f"{config.output_folder}/{x}.png")
     records = df.to_dict('records')
-    output_folder = Path(args.output_folder)
+    output_folder = Path(config.output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
-    resize_partial = partial(resize_copy, image_size=args.imgsize)
-    with mp.Pool(args.num_processes) as pool:
-        pool.map(resize_partial, records)
+    resize_partial = partial(resize_copy, image_size=config.imgsize)
+    if config.num_processes <= 1:
+        list(map(resize_partial, records))
+    else:
+        with mp.Pool(config.num_processes) as pool:
+            pool.map(resize_partial, records)
     df.drop(columns=['path'], inplace=True)
     df.rename(columns={'output_path': 'path'}, inplace=True)
-    df.to_parquet(f"{args.output_folder}/{args.output_name}")
-    if args.artifact_name:
-        artifact = upload_to_wandb(args.output_folder, args.output_name, pattern="*.parquet",
+    df.to_parquet(f"{config.output_folder}/{config.output_name}")
+    if config.artifact_name:
+        artifact = upload_to_wandb(config.output_folder, config.output_name, pattern="*.parquet",
                                    artifact_type='dataset', end_wandb_run=False, return_artifact=True)
-        table_name = args.output_name.replace('.parquet', '')
+        table_name = config.output_name.replace('.parquet', '')
         artifact.add(wandb.Table(dataframe=df), name=table_name)
         run.log_artifact(artifact)
         run.finish()
     
 if __name__ == '__main__':
-    main()
+    main() # pylint: disable=no-value-for-parameter

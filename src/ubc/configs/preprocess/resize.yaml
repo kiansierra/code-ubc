@@ -1,0 +1,7 @@
+imgsize: 2048
+output_folder: ../input/UBC-OCEAN-PROCESSED/resized-${imgsize}
+output_name: train-resize.parquet
+column_name: thumbnail_path
+dataframe_path: Null
+artifact_name: train_folds.parquet
+num_processes: 0
