@@ -1,5 +1,9 @@
 # TODO List
 
+## 2023-19-11
+- [x] Create preprocessing Tile
+- [ ] Extracting processing logic to ubc/preprocess
+
 ## 2023-18-11
 - [x] Streamline preprocesseing configs all using hydra for dynamic naming
 - [x] Use WANDB API to download artifact from specific run for lineage and validation

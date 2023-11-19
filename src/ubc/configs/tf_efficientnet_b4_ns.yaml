@@ -13,7 +13,7 @@ model:
 
 dataset:
   path: ../input/UBC-OCEAN-PROCESSED/resized-2048-crops/train.parquet
-  artifact_name: train-crop.parquet
+  artifact_name: train-tile-0.25-2048-512.parquet
 
 augmentations:
   train:
