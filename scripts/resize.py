@@ -22,7 +22,7 @@ Image.MAX_IMAGE_PIXELS = None
 
 
 
-def resize(image_path, output_path, imgsize=2048):
+def resize(image_path, output_path, scale, imgsize=2048):
     if os.path.exists(output_path):
         logger.info(f"skipping {output_path}")
         return
@@ -30,6 +30,7 @@ def resize(image_path, output_path, imgsize=2048):
     w, h = image.size
 
     ratio = imgsize / min([w, h])
+    ratio = max(ratio, scale)
     w2 = int(w*ratio)
     h2 = int(h*ratio)
 
@@ -40,11 +41,11 @@ def resize(image_path, output_path, imgsize=2048):
     image.save( output_path )
     logger.info(f"save done {output_path}")
     
-def resize_copy(row, image_size=2048):
+def resize_copy(row, scale, image_size=2048):
     if row['is_tma']:
         shutil.copy(row['path'], row['output_path'])
     else:
-        resize(row['path'], row['output_path'], image_size)
+        resize(row['path'], row['output_path'],scale, image_size)
     
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="resize", version_base=None)
 def main(config: DictConfig):
@@ -61,7 +62,7 @@ def main(config: DictConfig):
     records = df.to_dict('records')
     output_folder = Path(config.output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
-    resize_partial = partial(resize_copy, image_size=config.imgsize)
+    resize_partial = partial(resize_copy, image_size=config.imgsize, scale=config.scale)
     if config.num_processes <= 1:
         list(map(resize_partial, records))
     else:
