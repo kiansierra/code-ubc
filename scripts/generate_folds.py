@@ -5,7 +5,9 @@ from sklearn.model_selection import StratifiedKFold
 
 import wandb
 from ubc import upload_to_wandb
+from dotenv import load_dotenv
 
+load_dotenv()
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
 
@@ -22,7 +24,7 @@ def get_path(row):
 def generate_folds() -> None:
     train_df = pd.read_csv(ROOT_DIR / 'train.csv')
     train_df['thumbnail_path'] = train_df.apply(get_thumbnail, axis=1).astype(str)
-    train_df['image_path'] = train_df.apply(get_thumbnail, axis=1).astype(str)
+    train_df['image_path'] = train_df.apply(get_path, axis=1).astype(str)
     train_df['label-tma'] = train_df['label'].astype(str) + '-' + train_df['is_tma'].astype(str)
     kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     train_df['fold'] = -1

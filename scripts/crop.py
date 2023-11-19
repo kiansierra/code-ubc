@@ -10,9 +10,12 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from PIL import Image
-
+import warnings
 import wandb
 from ubc import upload_to_wandb
+
+warnings.filterwarnings("ignore")
+Image.MAX_IMAGE_PIXELS = None
 
 
 def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
@@ -77,22 +80,11 @@ def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
     return df_crop
 
 
-def args_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--output-folder',   type=str,   default="output file path")
-    parser.add_argument('--dataframe-path',   type=str,   default="Dataframe path")
-    parser.add_argument('--artifact-name',   type=str,   default=None)
-    parser.add_argument('--num_processes',   type=int,   default=4)
-    parser.add_argument('--output-name',   type=str,   default="train-crop.parquet")
-    args = parser.parse_args()
-    return args
-
 def crop(row, output_folder):
     return get_cropped_images(row['path'], row['image_id'], output_folder)
 
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="crop", version_base=None)
 def main(config: DictConfig) -> None:
-    args = args_parser()
     if config.artifact_name:
         config_container = OmegaConf.to_container(config, resolve=True)
         run = wandb.init(job_type='crop', config=config_container)
