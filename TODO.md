@@ -1,8 +1,14 @@
 # TODO List
 
+## 2023-20-11
+- [ ] Implemented Aggredated Tile Metric
+- [ ] Implementing Checkpoint Validation
+- [ ] Implementing Preprocessing Pipeline (Passing Images instead of load save in each phase)
+- [x] Normalize Crop positions to 0-1
+
 ## 2023-19-11
 - [x] Create preprocessing Tile
-- [ ] Extracting processing logic to ubc/preprocess
+- [x] Extracting preprocessing logic to ubc/preprocess
 
 ## 2023-18-11
 - [x] Streamline preprocesseing configs all using hydra for dynamic naming
