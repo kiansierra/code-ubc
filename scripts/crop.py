@@ -1,75 +1,28 @@
 import argparse
 import multiprocessing as mp
 import os
+import warnings
 from functools import partial
 from pathlib import Path
-import hydra
-from omegaconf import DictConfig, OmegaConf
+
 import cv2
+import hydra
 import numpy as np
 import pandas as pd
 from loguru import logger
+from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-import warnings
+from ubc import get_cropped_images, upload_to_wandb
+
 import wandb
-from ubc import upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
-def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
-    image = Image.open(file_path)
-    # Aspect ratio
-    as_ratio = image.size[0] / image.size[1]
-    crop_id = 0
-    outputs = []
-    if as_ratio >= 1.5:
-        # Crop
-        mask = np.max( np.array(image) > 0, axis=-1 ).astype(np.uint8)
-        retval, labels = cv2.connectedComponents(mask)
-        logger.debug(f"Cropping {image_id} with {as_ratio=:.2f} and size {image.size}")
-        if retval >= as_ratio:
-            x, y = np.meshgrid( np.arange(image.size[0]), np.arange(image.size[1]) )
-            for label in range(1, retval):
-                area = np.sum(labels == label)
-                if area < th_area:
-                    continue
-                xs, ys= x[ labels == label ], y[ labels == label ]
-                sx, ex = np.min(xs), np.max(xs)
-                cx = (sx + ex) // 2
-                crop_size = image.size[1]
-                sx = max(0, cx-crop_size//2)
-                ex = min(sx + crop_size - 1, image.size[0]-1)
-                sx = ex - crop_size + 1
-                sy, ey = 0, image.size[1]-1
-                save_path = f"{output_folder}/{image_id}_{crop_id}.png"
-                image.crop((sx,sy,ex,ey)).save(save_path)
-                outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
-                crop_id +=1
-        else:
-            crop_size = image.size[1]
-            for i in range(int(as_ratio)):
-                sx = i * crop_size
-                ex = (i+1) * crop_size - 1
-                sy = 0
-                ey = crop_size - 1
-                save_path = f"{output_folder}/{image_id}_{crop_id}.png"
-                image.save(save_path)
-                outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
-                crop_id +=1
-    else:
-        # Not Crop (entire image)
-        sx, ex, sy, ey = 0, image.size[0]-1, 0, image.size[1]-1
-        save_path = f"{output_folder}/{image_id}_{crop_id}.png"
-        image.save(save_path)
-        outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
-    df_crop = pd.DataFrame(outputs)
-    return df_crop
-
-
 def crop(row, output_folder):
-    return get_cropped_images(row['path'], row['image_id'], output_folder)
+    image = Image.open(row['path'])
+    return get_cropped_images(image, row['image_id'], output_folder)
 
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="crop", version_base=None)
 def main(config: DictConfig) -> None:
