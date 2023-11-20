@@ -23,7 +23,7 @@ def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
     # Aspect ratio
     as_ratio = image.size[0] / image.size[1]
     crop_id = 0
-    sxs, exs, sys, eys, file_paths = [],[],[],[], []
+    outputs = []
     if as_ratio >= 1.5:
         # Crop
         mask = np.max( np.array(image) > 0, axis=-1 ).astype(np.uint8)
@@ -43,40 +43,28 @@ def get_cropped_images(file_path, image_id, output_folder, th_area = 1000):
                 ex = min(sx + crop_size - 1, image.size[0]-1)
                 sx = ex - crop_size + 1
                 sy, ey = 0, image.size[1]-1
-                sxs.append(sx)
-                exs.append(ex)
-                sys.append(sy)
-                eys.append(ey)
                 save_path = f"{output_folder}/{image_id}_{crop_id}.png"
                 image.crop((sx,sy,ex,ey)).save(save_path)
-                file_paths.append(save_path)
+                outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
                 crop_id +=1
         else:
             crop_size = image.size[1]
             for i in range(int(as_ratio)):
-                sxs.append( i * crop_size )
-                exs.append( (i+1) * crop_size - 1 )
-                sys.append( 0 )
-                eys.append( crop_size - 1 )
+                sx = i * crop_size
+                ex = (i+1) * crop_size - 1
+                sy = 0
+                ey = crop_size - 1
                 save_path = f"{output_folder}/{image_id}_{crop_id}.png"
                 image.save(save_path)
-                file_paths.append(save_path)
+                outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
                 crop_id +=1
     else:
         # Not Crop (entire image)
-        sxs, exs, sys, eys = [0,],[image.size[0]-1],[0,],[image.size[1]-1]
+        sx, ex, sy, ey = 0, image.size[0]-1, 0, image.size[1]-1
         save_path = f"{output_folder}/{image_id}_{crop_id}.png"
         image.save(save_path)
-        file_paths.append(save_path)
-
-    df_crop = pd.DataFrame()
-    df_crop["image_id"] = [image_id] * len(sxs)
-    df_crop["image_size"] = [image.size] * len(sxs)
-    df_crop["path"] = file_paths
-    df_crop["sx"] = sxs
-    df_crop["ex"] = exs
-    df_crop["sy"] = sys
-    df_crop["ey"] = eys
+        outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
+    df_crop = pd.DataFrame(outputs)
     return df_crop
 
 

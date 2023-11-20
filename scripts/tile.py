@@ -3,7 +3,7 @@ import multiprocessing as mp
 import os
 from functools import partial
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import cv2
@@ -13,44 +13,16 @@ from loguru import logger
 from PIL import Image
 import warnings
 import wandb
-from ubc import upload_to_wandb
+from ubc import upload_to_wandb, tile_func
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
-def tiler(img: Image.Image, tile_size: int) -> Dict[Tuple[int,int],Image.Image]:
-    """Split image into tiles of size tile_size x tile_size with overlap
-    Args:
-        img (Image.Image): PIL image
-        tile_size (int): tile size
-    Returns:
-        Dict[Image.Image]: list of tiles
-    """
-    img_array = np.array(img)
-    x_splits = list(range(tile_size,img_array.shape[0],tile_size))
-    y_splits = list(range(tile_size,img_array.shape[1],tile_size))
-    all_splits = [np.split(elem, y_splits, 1) for elem in np.split(img_array, x_splits, 0)]
-    output = {}
-    for i, elem in enumerate(all_splits):
-        for j, elem2 in enumerate(elem):
-            output[(i*tile_size,j*tile_size)] = elem2
-    return output
 
-def tile_func(img_path, img_id, component, tile_size, output_folder):
-    img = Image.open(img_path)
-    logger.debug(f"tiling {img_id} with {img.size} and {tile_size=}")
-    tiles = tiler(img, tile_size)
-    data = []
-    os.makedirs(f"{output_folder}/{img_id}", exist_ok=True)
-    for (i,j), tile in tiles.items():
-        tile = Image.fromarray(tile)
-        path = f"{output_folder}/{img_id}/{component}_{i}_{j}.png"
-        tile.save(path)
-        data.append({'image_id': img_id, 'path':path, 'component': component, 'i': i, 'j': j})
-    return pd.DataFrame(data)
 
-def tile_wrapper(row, tile_size, output_folder):
-    return tile_func(row['path'], row['image_id'], row['component'], tile_size, output_folder)
+def tile_wrapper(row:Dict[str, Any], tile_size:int, output_folder:str, empty_threshold:float):
+    img = Image.open(row['path'])
+    return tile_func(img, row['image_id'], row['component'], tile_size, empty_threshold, output_folder)
 
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="tile", version_base=None)
 def main(config: DictConfig) -> None:
@@ -64,7 +36,8 @@ def main(config: DictConfig) -> None:
     records = df.to_dict('records')
     output_folder = Path(config.output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
-    tile_save = partial(tile_wrapper, output_folder=output_folder, tile_size=config.tile_size)
+    tile_save = partial(tile_wrapper, output_folder=output_folder,
+                         tile_size=config.tile_size, empty_threshold=config.empty_threshold)
     if config.num_processes > 1:
         with mp.Pool(config.num_processes) as pool:
             outputs = pool.map(tile_save, records)
