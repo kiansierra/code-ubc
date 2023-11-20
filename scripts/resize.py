@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from PIL import Image
-from ubc import upload_to_wandb
+from ubc import upload_to_wandb, resize
 
 import wandb
 
@@ -22,30 +22,39 @@ Image.MAX_IMAGE_PIXELS = None
 
 
 
-def resize(image_path, output_path, scale, imgsize=2048):
+# def resize(image_path, output_path, scale, imgsize=2048):
+    # if os.path.exists(output_path):
+    #     logger.info(f"skipping {output_path}")
+    #     return
+    # image = Image.open( image_path)
+    # w, h = image.size
+
+    # ratio = imgsize / min([w, h])
+    # ratio = max(ratio, scale)
+    # w2 = int(w*ratio)
+    # h2 = int(h*ratio)
+
+    # image = image.resize( (w2, h2) )
+    # logger.debug(f"{output_path} debug: ({w}, {h}) --> ({w2}, {h2})")
+    # if not os.path.exists(os.path.dirname(output_path)):
+    #     os.makedirs(os.path.dirname(output_path))
+    # image.save( output_path )
+    # logger.info(f"save done {output_path}")
+    
+def resize_copy(row, scale:float, image_size:int=2048):
+    output_path = row['output_path']
     if os.path.exists(output_path):
         logger.info(f"skipping {output_path}")
         return
-    image = Image.open( image_path)
-    w, h = image.size
-
-    ratio = imgsize / min([w, h])
-    ratio = max(ratio, scale)
-    w2 = int(w*ratio)
-    h2 = int(h*ratio)
-
-    image = image.resize( (w2, h2) )
-    logger.debug(f"{output_path} debug: ({w}, {h}) --> ({w2}, {h2})")
+    if row['is_tma']:
+        shutil.copy(row['path'], output_path)
+        return
     if not os.path.exists(os.path.dirname(output_path)):
-        os.makedirs(os.path.dirname(output_path))
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    image = Image.open( row['path'])
+    image = resize(image, scale, image_size)
     image.save( output_path )
     logger.info(f"save done {output_path}")
-    
-def resize_copy(row, scale, image_size=2048):
-    if row['is_tma']:
-        shutil.copy(row['path'], row['output_path'])
-    else:
-        resize(row['path'], row['output_path'],scale, image_size)
     
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="resize", version_base=None)
 def main(config: DictConfig):
