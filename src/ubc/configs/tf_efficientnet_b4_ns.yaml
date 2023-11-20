@@ -27,9 +27,9 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 1024
+img_size: 512
 fold: 0
-checkpoint_id: at74qu05
+checkpoint_id: Null
 monitor: val/MulticlassAccuracy
 batch_size: 2
 num_workers: 6

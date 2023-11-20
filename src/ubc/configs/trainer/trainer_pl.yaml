@@ -2,7 +2,7 @@ precision: bf16-mixed
 accumulate_grad_batches: ${accumulate_grad_batches}
 gradient_clip_val: 1.0
 max_steps : ${max_steps}
-min_epochs: 20
+min_epochs: 2
 max_epochs: ${max_epochs}
 log_every_n_steps: 20
 devices: 1
