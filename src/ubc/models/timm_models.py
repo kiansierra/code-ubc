@@ -1,10 +1,10 @@
-import typing
 from typing import Any, List, Optional
 
 import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
+
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -16,7 +16,6 @@ from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
 
 __all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY"]
-
 
 
 class GeM(nn.Module):
@@ -45,11 +44,11 @@ class GeM(nn.Module):
 
 
 class BaseLightningModel(pl.LightningModule):
-    def __init__(self, config:DictConfig, weights:Optional[List[int]] = None) -> None:
+    def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
         super().__init__()
         self.config = config
         self.example_input_array = torch.zeros((1, 3, config["img_size"], config["img_size"]))
-        
+
         model_config = config["model"]
         metrics = tm.MetricCollection(
             tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
@@ -63,7 +62,6 @@ class BaseLightningModel(pl.LightningModule):
         self.train_metric_tma = metrics.clone(prefix="train/tma_")
         self.val_metric = metrics.clone(prefix="val/wsi_")
         self.val_metric_tma = metrics.clone(prefix="val/tma_")
-        
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         images = batch["image"]
@@ -74,19 +72,25 @@ class BaseLightningModel(pl.LightningModule):
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
         if len(wsi_index):
-            self.train_metric.update(preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean())
+            self.train_metric.update(
+                preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
+            )
         if len(tma_index):
-            self.train_metric_tma.update(preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean())
+            self.train_metric_tma.update(
+                preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
+            )
         return loss.mean()
 
     def on_train_epoch_end(self) -> None:
         metrics = self.train_metric.compute()
         metrics_tma = self.train_metric_tma.compute()
-        
+
         self.train_metric.reset()
         self.train_metric_tma.reset()
-        
-        averaged_metrics = {k.replace('wsi_', ''):(0.5*v + 0.5 * metrics_tma[k.replace('wsi_', 'tma_')]) for k,v in metrics.items()}
+
+        averaged_metrics = {
+            k.replace("wsi_", ""): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi_", "tma_")]) for k, v in metrics.items()
+        }
         all_metrics = {**averaged_metrics, **metrics, **metrics_tma}
         self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
         return super().on_train_epoch_end()
@@ -99,9 +103,13 @@ class BaseLightningModel(pl.LightningModule):
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
         if len(wsi_index):
-            self.val_metric.update(preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean())
+            self.val_metric.update(
+                preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
+            )
         if len(tma_index):
-            self.val_metric_tma.update(preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean())
+            self.val_metric_tma.update(
+                preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
+            )
         return super().validation_step()
 
     def on_validation_epoch_end(self) -> None:
@@ -110,8 +118,10 @@ class BaseLightningModel(pl.LightningModule):
 
         self.val_metric.reset()
         self.val_metric_tma.reset()
-        
-        averaged_metrics = {k.replace('wsi_', ''):(0.5*v + 0.5 * metrics_tma[k.replace('wsi_', 'tma_')]) for k,v in metrics.items()}
+
+        averaged_metrics = {
+            k.replace("wsi_", ""): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi_", "tma_")]) for k, v in metrics.items()
+        }
         all_metrics = {**averaged_metrics, **metrics, **metrics_tma}
         self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
         return super().on_validation_epoch_end()
@@ -125,11 +135,13 @@ class BaseLightningModel(pl.LightningModule):
         scheduler = get_scheduler(self.config, optimizer)
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
+
 MODEL_REGISTRY = Registry("MODELS", BaseLightningModel)
+
 
 @MODEL_REGISTRY.register()
 class TimmModel(BaseLightningModel):
-    def __init__(self, config:DictConfig, weights:Optional[List[int]] = None) -> None:
+    def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
         super().__init__(config, weights=weights)
         model_config = config["model"]
         self.backbone = timm.create_model(model_config["backbone"], pretrained=model_config["pretrained"])
@@ -150,7 +162,7 @@ class TimmModel(BaseLightningModel):
 
 @MODEL_REGISTRY.register()
 class TimmVITModel(BaseLightningModel):
-    def __init__(self, config:DictConfig, weights:Optional[List[int]]=None) -> None:
+    def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
         super().__init__(config, weights=weights)
         model_config = config["model"]
         self.backbone = timm.create_model(

@@ -1,5 +1,5 @@
 import os
-from copy import copy, deepcopy
+from copy import deepcopy
 from pathlib import Path
 from typing import List
 
@@ -9,14 +9,19 @@ import pytorch_lightning as pl
 import torch
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf, open_dict
-from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
-                                         ModelCheckpoint)
+from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
-from ubc import (MODEL_REGISTRY, AugmentationDataset, get_train_transforms,
-                 get_valid_transforms, label2idx, upload_to_wandb)
+from ubc import (
+    MODEL_REGISTRY,
+    AugmentationDataset,
+    get_train_transforms,
+    get_valid_transforms,
+    label2idx,
+    upload_to_wandb,
+)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -42,11 +47,13 @@ def set_debug(config: DictConfig):
             config.trainer.devices = 1
             config.trainer.fast_dev_run = True
 
+
 def get_class_weights(df: pd.DataFrame) -> List[int]:
     class_counts = df["label"].map(label2idx).value_counts().sort_index()
     inverse_class_counts = 1 / class_counts
-    class_weights = inverse_class_counts / inverse_class_counts.sum() 
+    class_weights = inverse_class_counts / inverse_class_counts.sum()
     return class_weights.tolist()
+
 
 @hydra.main(config_path="ubc/configs", config_name="tf_efficientnetv2_s_in21ft1k", version_base=None)
 def train_folds(config: DictConfig) -> None:
@@ -56,7 +63,8 @@ def train_folds(config: DictConfig) -> None:
         fold_config = deepcopy(config)
         fold_config.fold = fold
         train_img_size(fold_config)
-        
+
+
 def train_img_size(config: DictConfig) -> None:
     if isinstance(config.img_size, int):
         return train_once(config)
@@ -67,7 +75,6 @@ def train_img_size(config: DictConfig) -> None:
         img_size_config.img_size = img_size
         new_ckpt = train_once(img_size_config)
         new_ckpt = Path(new_ckpt).name
-        
 
 
 def train_once(config: DictConfig) -> None:
@@ -97,15 +104,16 @@ def train_once(config: DictConfig) -> None:
     )
     if config.get("checkpoint_id", False):
         checkpoint_path = f"{config.output_dir}/{config.checkpoint_id}/last.ckpt"
-        model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+        model.load_state_dict(torch.load(checkpoint_path)["state_dict"])
         logger.debug(f"Loaded checkpoint {checkpoint_path}")
         wandb_logger.watch(model, log="gradients", log_freq=10)
     update_output_dir(config, wandb_logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
     early_stopping = EarlyStopping(monitor=config["monitor"], patience=10, mode="max")
-    checkpoint_callback = ModelCheckpoint(filename='best',dirpath=config.output_dir, monitor=config["monitor"],
-                                          mode="max", save_last=True, save_top_k=1)
+    checkpoint_callback = ModelCheckpoint(
+        filename="best", dirpath=config.output_dir, monitor=config["monitor"], mode="max", save_last=True, save_top_k=1
+    )
     trainer = pl.Trainer(
         **config["trainer"], logger=wandb_logger, callbacks=[lr_monitor, early_stopping, checkpoint_callback]
     )

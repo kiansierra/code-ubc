@@ -36,14 +36,16 @@ def aggregate_predictions(predictions: Dict[str, torch.Tensor]) -> pd.DataFrame:
 def validate(checkpoint_id: str) -> None:
     torch.set_float32_matmul_precision("medium")
     api = wandb.Api()
-    ckpt_run = api.run(f'UBC-OCEAN/{checkpoint_id}')
+    ckpt_run = api.run(f"UBC-OCEAN/{checkpoint_id}")
     run = wandb.init(job_type="validate", project="UBC-OCEAN")
-    ckpt_artifact_name = [artifact.name for artifact in ckpt_run.logged_artifacts() if 'history' not in artifact.name][0]
+    ckpt_artifact_name = [artifact.name for artifact in ckpt_run.logged_artifacts() if "history" not in artifact.name][
+        0
+    ]
     ckpt_artifact = run.use_artifact(ckpt_artifact_name, type="model")
     ckpt_artifact_dir = ckpt_artifact.download()
     config = OmegaConf.load(os.path.join(ckpt_artifact_dir, "config.yaml"))
     checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
-    
+
     artifact = run.use_artifact(f"{config.dataset.artifact_name}:latest", type="dataset")
     artifact_dir = artifact.download()
     dataset_path = f"{artifact_dir}/{config.dataset.artifact_name}"

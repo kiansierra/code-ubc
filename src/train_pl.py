@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import List
-import wandb 
+import wandb
 import hydra
 import pandas as pd
 import pytorch_lightning as pl
@@ -44,11 +44,13 @@ def set_debug(config: DictConfig):
             config.trainer.devices = 1
             config.trainer.fast_dev_run = True
 
+
 def get_class_weights(df: pd.DataFrame) -> List[int]:
     class_counts = df["label"].map(label2idx).value_counts().sort_index()
     inverse_class_counts = 1 / class_counts
-    class_weights = inverse_class_counts / inverse_class_counts.sum() 
+    class_weights = inverse_class_counts / inverse_class_counts.sum()
     return class_weights.tolist()
+
 
 @hydra.main(config_path="ubc/configs", config_name="tf_efficientnet_b4_ns", version_base=None)
 def train(config: DictConfig) -> None:
@@ -78,28 +80,30 @@ def train(config: DictConfig) -> None:
     weights = get_class_weights(train_df)
     model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=weights)
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
-    
+
     if config.get("checkpoint_id", False):
         api = wandb.Api()
-        run = api.run(f'UBC-OCEAN/{config.checkpoint_id}')
-        ckpt_artifact_name = [artifact.name for artifact in run.logged_artifacts() if artifact.name.startswith(config.model.backbone)][0]
+        run = api.run(f"UBC-OCEAN/{config.checkpoint_id}")
+        ckpt_artifact_name = [
+            artifact.name for artifact in run.logged_artifacts() if artifact.name.startswith(config.model.backbone)
+        ][0]
         ckpt_artifact = logger.experiment.use_artifact(ckpt_artifact_name, type="model")
         ckpt_artifact_dir = ckpt_artifact.download()
         checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
-        model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+        model.load_state_dict(torch.load(checkpoint_path)["state_dict"])
         # logger.watch(model, log="gradients", log_freq=10)
     update_output_dir(config, logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
     early_stopping = EarlyStopping(monitor=config["monitor"], patience=10, mode="max")
-    checkpoint_callback = ModelCheckpoint(filename='best',dirpath=config.output_dir, monitor=config["monitor"],
-                                          mode="max", save_last=True, save_top_k=1)
+    checkpoint_callback = ModelCheckpoint(
+        filename="best", dirpath=config.output_dir, monitor=config["monitor"], mode="max", save_last=True, save_top_k=1
+    )
     trainer = pl.Trainer(
         **config["trainer"], logger=logger, callbacks=[lr_monitor, early_stopping, checkpoint_callback]
     )
     trainer.fit(model, train_dataloader, valid_dataloader)
     rank_zero_only(upload_to_wandb)(config.output_dir, name=config.model.backbone)
-    
 
 
 if __name__ == "__main__":

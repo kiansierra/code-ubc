@@ -35,7 +35,7 @@ class Registry(Iterable[Tuple[str, T]]):
         BACKBONE_REGISTRY.register(MyBackbone)
     """
 
-    def __init__(self, name, type:T) -> None:
+    def __init__(self, name, type: T) -> None:
         """
         Args:
             name (str): the name of this registry
@@ -44,9 +44,7 @@ class Registry(Iterable[Tuple[str, T]]):
         self._obj_map: Dict[str, Any] = {}
 
     def _do_register(self, name: str, obj: T) -> None:
-        assert (
-            name not in self._obj_map
-        ), "An object named '{}' was already registered in '{}' registry!".format(
+        assert name not in self._obj_map, "An object named '{}' was already registered in '{}' registry!".format(
             name, self._name
         )
         self._obj_map[name] = obj
@@ -72,9 +70,7 @@ class Registry(Iterable[Tuple[str, T]]):
     def get(self, name: str) -> T:
         ret = self._obj_map.get(name)
         if ret is None:
-            raise KeyError(
-                "No object named '{}' found in '{}' registry!".format(name, self._name)
-            )
+            raise KeyError("No object named '{}' found in '{}' registry!".format(name, self._name))
         return ret
 
     def __contains__(self, name: str) -> bool:
@@ -82,9 +78,7 @@ class Registry(Iterable[Tuple[str, T]]):
 
     def __repr__(self) -> str:
         table_headers = ["Names", "Objects"]
-        table = tabulate(
-            self._obj_map.items(), headers=table_headers, tablefmt="fancy_grid"
-        )
+        table = tabulate(self._obj_map.items(), headers=table_headers, tablefmt="fancy_grid")
         return "Registry of {}:\n".format(self._name) + table
 
     def __iter__(self) -> Iterator[Tuple[str, T]]:
@@ -92,4 +86,3 @@ class Registry(Iterable[Tuple[str, T]]):
 
     # pyre-fixme[4]: Attribute must be annotated.
     __str__ = __repr__
-    
