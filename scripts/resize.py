@@ -6,14 +6,15 @@ import shutil
 import warnings
 from functools import partial
 from pathlib import Path
-import hydra
-from omegaconf import DictConfig, OmegaConf
+
 import cv2
+import hydra
 import numpy as np
 import pandas as pd
 from loguru import logger
+from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-from ubc import upload_to_wandb
+from ubc import resize, upload_to_wandb
 
 import wandb
 
@@ -21,30 +22,21 @@ warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
-
-def resize(image_path, output_path, imgsize=2048):
+    
+def resize_copy(row, scale:float, image_size:int=2048):
+    output_path = row['output_path']
     if os.path.exists(output_path):
         logger.info(f"skipping {output_path}")
         return
-    image = Image.open( image_path)
-    w, h = image.size
-
-    ratio = imgsize / min([w, h])
-    w2 = int(w*ratio)
-    h2 = int(h*ratio)
-
-    image = image.resize( (w2, h2) )
-    logger.debug(f"{output_path} debug: ({w}, {h}) --> ({w2}, {h2})")
+    if row['is_tma']:
+        shutil.copy(row['path'], output_path)
+        return
     if not os.path.exists(os.path.dirname(output_path)):
-        os.makedirs(os.path.dirname(output_path))
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    image = Image.open( row['path'])
+    image = resize(image, scale, image_size)
     image.save( output_path )
     logger.info(f"save done {output_path}")
-    
-def resize_copy(row, image_size=2048):
-    if row['is_tma']:
-        shutil.copy(row['path'], row['output_path'])
-    else:
-        resize(row['path'], row['output_path'], image_size)
     
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="resize", version_base=None)
 def main(config: DictConfig):
@@ -61,7 +53,7 @@ def main(config: DictConfig):
     records = df.to_dict('records')
     output_folder = Path(config.output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
-    resize_partial = partial(resize_copy, image_size=config.imgsize)
+    resize_partial = partial(resize_copy, image_size=config.imgsize, scale=config.scale)
     if config.num_processes <= 1:
         list(map(resize_partial, records))
     else:

@@ -6,16 +6,16 @@ metric:
 parameters:
   lr:
     min: 5.0e-6
-    max: 1.0e-3
+    max: 5.0e-4
   optimizer:
     values: ["adam", "adamw"]
   optimizer.weight_decay:
     min: 1.0e-6
-    max: 1.0e-3
+    max: 5.0e-4
   scheduler:
     values: ["cosine_annealing", "hf_constant_with_warmup", "hf_cosine_with_restarts"]
   img_size:
-    values: [512]
+    values: [2048]
   augmentations.train.flip:
     values: [True, False]
   augmentations.train.blur:
@@ -25,10 +25,10 @@ parameters:
   accumulate_grad_batches:
     values: [1, 2, 4]
   batch_size:
-    values: [2, 4]
+    values: [2]
   trainer.gradient_clip_val:
     min: 0.0
-    max: 2.0
+    max: 1.0
 
   
 

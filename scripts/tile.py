@@ -1,38 +1,34 @@
 import argparse
 import multiprocessing as mp
 import os
-import warnings
 from functools import partial
 from pathlib import Path
-
-import cv2
+from typing import Any, Dict, Tuple
 import hydra
+from omegaconf import DictConfig, OmegaConf
+import cv2
 import numpy as np
 import pandas as pd
 from loguru import logger
-from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-
+import warnings
 import wandb
-from ubc import get_cropped_images, upload_to_wandb
+from ubc import upload_to_wandb, tile_func
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
-def crop(row, output_folder):
-    image = Image.open(row['path'])
-    data, images =  get_cropped_images(image, row['image_id'], output_folder)
-    for path, img in zip(data['path'], images):
-        img.save(path)
-    return data
 
+def tile_wrapper(row:Dict[str, Any], tile_size:int, output_folder:str, empty_threshold:float):
+    img = Image.open(row['path'])
+    return tile_func(img, row['image_id'], row['component'], tile_size, empty_threshold, output_folder)
 
-@hydra.main(config_path="../src/ubc/configs/preprocess", config_name="crop", version_base=None)
+@hydra.main(config_path="../src/ubc/configs/preprocess", config_name="tile", version_base=None)
 def main(config: DictConfig) -> None:
     if config.artifact_name:
         config_container = OmegaConf.to_container(config, resolve=True)
-        run = wandb.init(job_type='crop', config=config_container)
+        run = wandb.init(job_type='tile', config=config_container)
         artifact = run.use_artifact(f"{config.artifact_name}:latest", type='dataset')
         artifact_dir = artifact.download()
         config.dataframe_path = f"{artifact_dir}/{config.artifact_name}"
@@ -40,16 +36,16 @@ def main(config: DictConfig) -> None:
     records = df.to_dict('records')
     output_folder = Path(config.output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
-    crop_save = partial(crop, output_folder=output_folder)
+    tile_save = partial(tile_wrapper, output_folder=output_folder,
+                         tile_size=config.tile_size, empty_threshold=config.empty_threshold)
     if config.num_processes > 1:
         with mp.Pool(config.num_processes) as pool:
-            outputs = pool.map(crop_save, records)
+            outputs = pool.map(tile_save, records)
     else:
-        outputs = list(map(crop_save, records))
+        outputs = list(map(tile_save, records))
     output_df = pd.concat(outputs)
-    output_df['component'] = output_df.index
     output_df.reset_index(drop=True, inplace=True)
-    output_df = output_df.merge(df.rename(columns={'path': 'crop_path'}), on='image_id', how='left')
+    output_df = output_df.merge(df.rename(columns={'path': 'component_path'}), on=['image_id', 'component'], how='left')
     output_df.to_parquet(f"{config.output_folder}/{config.output_name}")
     if config.artifact_name:
         artifact = upload_to_wandb(config.output_folder, config.output_name, pattern="*.parquet",
