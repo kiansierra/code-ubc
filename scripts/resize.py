@@ -6,14 +6,15 @@ import shutil
 import warnings
 from functools import partial
 from pathlib import Path
-import hydra
-from omegaconf import DictConfig, OmegaConf
+
 import cv2
+import hydra
 import numpy as np
 import pandas as pd
 from loguru import logger
+from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-from ubc import upload_to_wandb, resize
+from ubc import resize, upload_to_wandb
 
 import wandb
 
@@ -21,25 +22,6 @@ warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
-
-# def resize(image_path, output_path, scale, imgsize=2048):
-    # if os.path.exists(output_path):
-    #     logger.info(f"skipping {output_path}")
-    #     return
-    # image = Image.open( image_path)
-    # w, h = image.size
-
-    # ratio = imgsize / min([w, h])
-    # ratio = max(ratio, scale)
-    # w2 = int(w*ratio)
-    # h2 = int(h*ratio)
-
-    # image = image.resize( (w2, h2) )
-    # logger.debug(f"{output_path} debug: ({w}, {h}) --> ({w2}, {h2})")
-    # if not os.path.exists(os.path.dirname(output_path)):
-    #     os.makedirs(os.path.dirname(output_path))
-    # image.save( output_path )
-    # logger.info(f"save done {output_path}")
     
 def resize_copy(row, scale:float, image_size:int=2048):
     output_path = row['output_path']

@@ -1,6 +1,6 @@
 
 import os
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
@@ -9,11 +9,12 @@ from loguru import logger
 from PIL import Image
 
 
-def get_cropped_images(image:Image.Image, image_id:str, output_folder:str, th_area:int = 1000):
+def get_cropped_images(image:Image.Image, image_id:str, output_folder:str, th_area:int = 1000) -> Tuple[pd.DataFrame, List[Image.Image]]:
     # Aspect ratio
     as_ratio = image.size[0] / image.size[1]
     crop_id = 0
     outputs = []
+    images = []
     if as_ratio >= 1.5:
         # Crop
         mask = np.max( np.array(image) > 0, axis=-1 ).astype(np.uint8)
@@ -34,7 +35,7 @@ def get_cropped_images(image:Image.Image, image_id:str, output_folder:str, th_ar
                 sx = ex - crop_size + 1
                 sy, ey = 0, image.size[1]-1
                 save_path = f"{output_folder}/{image_id}_{crop_id}.png"
-                image.crop((sx,sy,ex,ey)).save(save_path)
+                images.append(image.crop((sx,sy,ex,ey)))
                 sx, sy = sx / image.size[0], sy / image.size[1]
                 ex, ey = ex / image.size[0], ey / image.size[1]
                 outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
@@ -47,17 +48,17 @@ def get_cropped_images(image:Image.Image, image_id:str, output_folder:str, th_ar
                 sx, ex = sx / image.size[0], ex / image.size[0]
                 sy, ey = 0, 1
                 save_path = f"{output_folder}/{image_id}_{crop_id}.png"
-                image.save(save_path)
+                images.append(image)
                 outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
                 crop_id +=1
     else:
         # Not Crop (entire image)
         sx, ex, sy, ey = 0, 1, 0, 1
         save_path = f"{output_folder}/{image_id}_{crop_id}.png"
-        image.save(save_path)
+        images.append(image)
         outputs.append({'image_id': image_id, 'path':save_path, 'component': crop_id, 'sx': sx, 'ex': ex, 'sy': sy, 'ey': ey})
     df_crop = pd.DataFrame(outputs)
-    return df_crop
+    return df_crop , images
 
 
 def resize(image: Image.Image, scale:float, imgsize:int=2048):

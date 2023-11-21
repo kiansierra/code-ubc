@@ -12,9 +12,9 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-from ubc import get_cropped_images, upload_to_wandb
 
 import wandb
+from ubc import get_cropped_images, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -22,7 +22,11 @@ Image.MAX_IMAGE_PIXELS = None
 
 def crop(row, output_folder):
     image = Image.open(row['path'])
-    return get_cropped_images(image, row['image_id'], output_folder)
+    data, images =  get_cropped_images(image, row['image_id'], output_folder)
+    for path, img in zip(data['path'], images):
+        img.save(path)
+    return data
+
 
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="crop", version_base=None)
 def main(config: DictConfig) -> None:
