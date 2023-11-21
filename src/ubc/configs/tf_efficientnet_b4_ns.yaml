@@ -13,7 +13,7 @@ model:
 
 dataset:
   path: ../input/UBC-OCEAN-PROCESSED/resized-2048-crops/train.parquet
-  artifact_name: train-tile-0.25-2048-512.parquet
+  artifact_name: train-crop-0.0-2048.parquet
 
 augmentations:
   train:
@@ -27,9 +27,9 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 2048
 fold: 0
-checkpoint_id: Null
+checkpoint_id: mcg1pjpi
 monitor: val/MulticlassAccuracy
 batch_size: 8
 num_workers: 6

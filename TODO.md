@@ -1,8 +1,11 @@
 # TODO List
 
+## 2023-21-11
+- [ ] Create Masks Datasets
+
 ## 2023-20-11
 - [ ] Implemented Aggredated Tile Metric
-- [ ] Implementing Checkpoint Validation
+- [x] Implementing Checkpoint Validation
 - [ ] Implementing Preprocessing Pipeline (Passing Images instead of load save in each phase)
 - [x] Normalize Crop positions to 0-1
 
