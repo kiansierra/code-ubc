@@ -29,9 +29,9 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 2048
 fold: 0
-checkpoint_id: mcg1pjpi
+checkpoint_id: o6gafwwl
 monitor: val/MulticlassAccuracy
-batch_size: 8
+batch_size: 2
 num_workers: 6
 
 lr: 5e-4
