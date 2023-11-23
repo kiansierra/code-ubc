@@ -19,7 +19,7 @@ function download_and_extract_dataset(){
     rm $DATASET.zip
 }
 
-# download_and_extract_competiton "UBC-OCEAN"
+download_and_extract_competiton "UBC-OCEAN"
 download_and_extract_dataset "sohier" "ubc-ovarian-cancer-competition-supplemental-masks"
 
 

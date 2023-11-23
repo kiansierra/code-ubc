@@ -1,7 +1,14 @@
 # TODO List
 
+
+## 2023-23-11
+- [x] Resize steps also for masks
+- [x] Crop steps with coordinates
+- [x] Tile with masks
+
+
 ## 2023-21-11
-- [ ] Create Masks Datasets
+- [x] Create Masks Datasets
 
 ## 2023-20-11
 - [ ] Implemented Aggredated Tile Metric
