@@ -1,5 +1,8 @@
 # TODO List
 
+## Future Work
+- [ ] Mask Segmentation with custom backbone that can be reused for classification
+
 
 ## 2023-23-11
 - [x] Resize steps also for masks

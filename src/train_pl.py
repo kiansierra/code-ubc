@@ -1,24 +1,22 @@
 import os
 from pathlib import Path
 from typing import List
-import wandb
+
 import hydra
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
-from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
+                                         ModelCheckpoint)
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
-from ubc import (
-    MODEL_REGISTRY,
-    AugmentationDataset,
-    get_train_transforms,
-    get_valid_transforms,
-    label2idx,
-    upload_to_wandb,
-)
+
+import wandb
+from ubc import (MODEL_REGISTRY, AugmentationDataset, get_train_transforms,
+                 get_valid_transforms, label2idx, label2idxmask,
+                 upload_to_wandb)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -73,6 +71,8 @@ def train(config: DictConfig) -> None:
     df = pd.read_parquet(dataset_path)
     train_df = df[df["fold"] != config["fold"]].reset_index(drop=True)
     valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
+    max_images_per_label = train_df.groupby("label")['image_id'].count().max()
+    train_df = train_df.groupby("label").sample(n=max_images_per_label, replace=True, random_state=config.seed).reset_index(drop=True)
     train_ds = AugmentationDataset(train_df, augmentation=get_train_transforms(config))
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)

@@ -1,6 +1,6 @@
 defaults:
   - trainer: trainer_pl
-  - optimizer: adam
+  - optimizer: adamw
   - scheduler: cosine_annealing
   - dataloader: dataloader
   - _self_
@@ -29,7 +29,7 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 2048
 fold: 0
-checkpoint_id: o6gafwwl
+checkpoint_id: kq5988be
 monitor: val/MulticlassAccuracy
 batch_size: 2
 num_workers: 6
