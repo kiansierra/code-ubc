@@ -1,5 +1,5 @@
 imgsize: 2048
-scale: 0.0
+scale: 0.25
 output_folder: ../input/UBC-OCEAN-PROCESSED/resized-${scale}-${imgsize}
 output_name: train-resize-${scale}-${imgsize}.parquet
 column_name: thumbnail_path

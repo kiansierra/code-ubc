@@ -1,19 +1,21 @@
 import argparse
 import multiprocessing as mp
 import os
+import warnings
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, Tuple
-import hydra
-from omegaconf import DictConfig, OmegaConf
+
 import cv2
+import hydra
 import numpy as np
 import pandas as pd
 from loguru import logger
+from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-import warnings
+from ubc import tile_func, upload_to_wandb
+
 import wandb
-from ubc import upload_to_wandb, tile_func
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -21,8 +23,16 @@ Image.MAX_IMAGE_PIXELS = None
 
 
 def tile_wrapper(row:Dict[str, Any], tile_size:int, output_folder:str, empty_threshold:float):
+    image_output_folder = f"{output_folder}/images"
+    mask_output_folder = f"{output_folder}/masks"
     img = Image.open(row['path'])
-    return tile_func(img, row['image_id'], row['component'], tile_size, empty_threshold, output_folder)
+    image_df = tile_func(img, row['image_id'], row['component'], tile_size, empty_threshold, image_output_folder)
+    if os.path.exists(row['mask_path']):
+        mask = Image.open(row['mask_path'])
+        mask_df = tile_func(mask, row['image_id'], row['component'], tile_size, 0.0, mask_output_folder, get_weights=True)
+        mask_df.rename(columns={'path': 'mask_path'}, inplace=True)
+        image_df = image_df.merge(mask_df, on=['image_id', 'component', 'i', 'j'], how='left')
+    return image_df
 
 @hydra.main(config_path="../src/ubc/configs/preprocess", config_name="tile", version_base=None)
 def main(config: DictConfig) -> None:

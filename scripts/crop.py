@@ -12,19 +12,33 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
+from ubc import get_cropped_images, get_crops_from_data, upload_to_wandb
 
 import wandb
-from ubc import get_cropped_images, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
 def crop(row, output_folder):
+    image_output_folder = f"{output_folder}/images"
+    mask_output_folder = f"{output_folder}/masks"
+    os.makedirs(image_output_folder, exist_ok=True)
+    os.makedirs(mask_output_folder, exist_ok=True)
     image = Image.open(row['path'])
-    data, images =  get_cropped_images(image, row['image_id'], output_folder)
+    data, images =  get_cropped_images(image, row['image_id'], image_output_folder)
     for path, img in zip(data['path'], images):
         img.save(path)
+    
+    if os.path.exists(row['mask_path']):
+        mask = Image.open(row['mask_path'])
+        mask_data, images =  get_crops_from_data(mask, data, mask_output_folder)
+        for path, img in zip(mask_data['path'], images):
+            img.save(path) 
+        mask_data.rename(columns={'path': 'mask_path'}, inplace=True)
+        data = data.merge(mask_data, on=['image_id', 'component'], how='left')
+    else:
+        data['mask_path'] = ''
     return data
 
 
@@ -49,7 +63,7 @@ def main(config: DictConfig) -> None:
     output_df = pd.concat(outputs)
     output_df['component'] = output_df.index
     output_df.reset_index(drop=True, inplace=True)
-    output_df = output_df.merge(df.rename(columns={'path': 'crop_path'}), on='image_id', how='left')
+    output_df = output_df.merge(df[['image_id', 'is_tma', 'label', 'fold']], on='image_id', how='left')
     output_df.to_parquet(f"{config.output_folder}/{config.output_name}")
     if config.artifact_name:
         artifact = upload_to_wandb(config.output_folder, config.output_name, pattern="*.parquet",

@@ -1,15 +1,17 @@
 from pathlib import Path
 
 import pandas as pd
+from dotenv import load_dotenv
 from sklearn.model_selection import StratifiedKFold
 
 import wandb
 from ubc import upload_to_wandb
-from dotenv import load_dotenv
 
 load_dotenv()
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
+MASK_FOLDER = Path("../input/ubc-ovarian-cancer-competition-supplemental-masks")
+
 
 
 def get_thumbnail(row):
@@ -20,11 +22,19 @@ def get_thumbnail(row):
 def get_path(row):
     return str(ROOT_DIR / "train_images" / f"{row['image_id']}.png")
 
+def get_mask(row):
+    mask_path = MASK_FOLDER / f"{row['image_id']}.png"
+    if mask_path.exists():
+        return str(mask_path)
+    else:
+        return ''
+
 
 def generate_folds() -> None:
     train_df = pd.read_csv(ROOT_DIR / 'train.csv')
     train_df['thumbnail_path'] = train_df.apply(get_thumbnail, axis=1).astype(str)
     train_df['image_path'] = train_df.apply(get_path, axis=1).astype(str)
+    train_df['mask_path'] = train_df.apply(get_mask, axis=1).astype(str)
     train_df['label-tma'] = train_df['label'].astype(str) + '-' + train_df['is_tma'].astype(str)
     kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     train_df['fold'] = -1

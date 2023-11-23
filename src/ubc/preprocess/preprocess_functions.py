@@ -7,6 +7,8 @@ import pandas as pd
 from loguru import logger
 from PIL import Image
 
+from ..data.constants import label2idxmask
+
 
 def get_cropped_images(
     image: Image.Image, image_id: str, output_folder: str, th_area: int = 1000
@@ -27,7 +29,7 @@ def get_cropped_images(
                 area = np.sum(labels == label)
                 if area < th_area:
                     continue
-                xs, ys = x[labels == label], y[labels == label]
+                xs = x[labels == label]
                 sx, ex = np.min(xs), np.max(xs)
                 cx = (sx + ex) // 2
                 crop_size = image.size[1]
@@ -83,6 +85,20 @@ def get_cropped_images(
     df_crop = pd.DataFrame(outputs)
     return df_crop, images
 
+def get_crops_from_data(
+    image: Image.Image, data: pd.DataFrame, output_folder: str) -> Tuple[pd.DataFrame, List[Image.Image]]:
+    # Aspect ratio
+    records = data.to_dict('records')
+    new_records, new_images = [], []
+    for record in records:
+        sx, sy = int(record['sx']*image.size[0]), int(record['sy']*image.size[1])
+        ex, ey =  int(record['ex']*image.size[0]), int(record['ey']*image.size[1])
+        save_path = f"{output_folder}/{record['image_id']}_{record['component']}.png"
+        crop = image.crop((sx, sy, ex, ey))
+        new_records.append({'image_id': record['image_id'], 'path': save_path, 'component': record['component']})
+        new_images.append(crop)   
+    return pd.DataFrame(new_records), new_images
+
 
 def resize(image: Image.Image, scale: float, imgsize: int = 2048):
     """
@@ -125,9 +141,21 @@ def tiler(img: Image.Image, tile_size: int, empty_threshold: float) -> Dict[Tupl
             output[(i * tile_size, j * tile_size)] = elem2
     return output
 
+def get_mask_weights(mask: np.ndarray) -> np.ndarray:
+    """Get mask weights for weighted loss
+    Args:
+        mask (np.ndarray): mask
+    Returns:
+        np.ndarray: mask weights
+    """
+    mask_weights = (mask > 0).astype(np.float32).mean(axis=(0,1))
+    return {k: mask_weights[v] for k,v in label2idxmask.items()}
+
+
 
 def tile_func(
-    img: Image.Image, img_id: int, component: int, tile_size: int, empty_threshold: float, output_folder: str
+    img: Image.Image, img_id: int, component: int, tile_size: int,
+    empty_threshold: float, output_folder: str, get_weights:bool=False
 ):
     logger.debug(f"tiling {img_id} with {img.size} and {tile_size=}")
     tiles = tiler(img, tile_size, empty_threshold)
@@ -135,8 +163,13 @@ def tile_func(
     data = []
     os.makedirs(f"{output_folder}/{img_id}", exist_ok=True)
     for (i, j), tile in tiles.items():
+        if get_weights:
+            mask_data = get_mask_weights(tile)
         tile = Image.fromarray(tile)
         path = f"{output_folder}/{img_id}/{component}_{i}_{j}.png"
         tile.save(path)
-        data.append({"image_id": img_id, "path": path, "component": component, "i": i, "j": j})
+        tile_data = {"image_id": img_id, "path": path, "component": component, "i": i, "j": j}
+        if get_weights:
+            tile_data = {**tile_data, **mask_data}
+        data.append(tile_data)
     return pd.DataFrame(data)

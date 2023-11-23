@@ -4,4 +4,4 @@ output_folder: ../input/UBC-OCEAN-PROCESSED/crop-${scale}-${imgsize}
 output_name: train-crop-${scale}-${imgsize}.parquet
 dataframe_path: Null
 artifact_name: train-resize-${scale}-${imgsize}.parquet
-num_processes: 4
+num_processes: 6
