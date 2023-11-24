@@ -14,9 +14,9 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
 import wandb
-from ubc import (MODEL_REGISTRY, AugmentationDataset, get_train_transforms,
-                 get_valid_transforms, label2idx, label2idxmask,
-                 upload_to_wandb)
+from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, AugmentationDataset,
+                 get_train_transforms, get_valid_transforms, label2idx,
+                 label2idxmask, upload_to_wandb)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -65,14 +65,18 @@ def train(config: DictConfig) -> None:
         offline=config.get("debug", False),
         job_type="train",
     )
-    artifact = logger.experiment.use_artifact(f"{config.dataset.artifact_name}:latest", type="dataset")
-    artifact_dir = artifact.download()
-    dataset_path = f"{artifact_dir}/{config.dataset.artifact_name}"
-    df = pd.read_parquet(dataset_path)
-    train_df = df[df["fold"] != config["fold"]].reset_index(drop=True)
-    valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
-    max_images_per_label = train_df.groupby("label")['image_id'].count().max()
-    train_df = train_df.groupby("label").sample(n=max_images_per_label, replace=True, random_state=config.seed).reset_index(drop=True)
+    dataset_builder =DATASET_REGISTRY.get(config.dataset.loader)
+    train_df, valid_df = dataset_builder(logger.experiment, config.dataset)
+    # artifact = logger.experiment.use_artifact(f"{config.dataset.artifact_name}:latest", type="dataset")
+    # artifact_dir = artifact.download()
+    # dataset_path = f"{artifact_dir}/{config.dataset.artifact_name}"
+    # df = pd.read_parquet(dataset_path)
+    # df = df.query('image_path != thumbnail_path')
+    # df.rename(columns={'thumbnail_path': 'path'}, inplace=True)
+    # train_df = df[df["fold"] != config["fold"]].reset_index(drop=True)
+    # valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
+    # max_images_per_label = train_df.groupby("label")['image_id'].count().max()
+    # train_df = train_df.groupby("label").sample(n=max_images_per_label, replace=True, random_state=config.seed).reset_index(drop=True)
     train_ds = AugmentationDataset(train_df, augmentation=get_train_transforms(config))
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
@@ -95,12 +99,12 @@ def train(config: DictConfig) -> None:
     update_output_dir(config, logger)
     save_config(config)
     lr_monitor = LearningRateMonitor(logging_interval="step")
-    early_stopping = EarlyStopping(monitor=config["monitor"], patience=10, mode="max")
+    # early_stopping = EarlyStopping(monitor=config["monitor"], patience=4, mode="max")
     checkpoint_callback = ModelCheckpoint(
         filename="best", dirpath=config.output_dir, monitor=config["monitor"], mode="max", save_last=True, save_top_k=1
     )
     trainer = pl.Trainer(
-        **config["trainer"], logger=logger, callbacks=[lr_monitor, early_stopping, checkpoint_callback]
+        **config["trainer"], logger=logger, callbacks=[lr_monitor,  checkpoint_callback]
     )
     trainer.fit(model, train_dataloader, valid_dataloader)
     rank_zero_only(upload_to_wandb)(config.output_dir, name=config.model.backbone)

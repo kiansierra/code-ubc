@@ -1,0 +1,6 @@
+loader: load_crop
+artifact_name: train-crop-0.0-2048.parquet
+column_name: path
+fold: ${fold}
+seed: ${seed}
+balanced: True
