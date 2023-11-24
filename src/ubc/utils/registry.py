@@ -41,7 +41,7 @@ class Registry(Iterable[Tuple[str, T]]):
             name (str): the name of this registry
         """
         self._name: str = name
-        self._obj_map: Dict[str, Any] = {}
+        self._obj_map: Dict[str, type] = {}
 
     def _do_register(self, name: str, obj: T) -> None:
         assert name not in self._obj_map, "An object named '{}' was already registered in '{}' registry!".format(
