@@ -1,6 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 # pyre-ignore-all-errors[2,3]
-from typing import Any, Dict, Iterable, Iterator, Tuple, TypeVar
+from typing import Dict, Iterable, Iterator, Tuple, TypeVar
 
 from tabulate import tabulate
 

@@ -7,16 +7,21 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
-from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
-                                         ModelCheckpoint)
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
 import wandb
-from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, AugmentationDataset,
-                 get_train_transforms, get_valid_transforms, label2idx,
-                 label2idxmask, upload_to_wandb)
+from ubc import (
+    DATASET_REGISTRY,
+    MODEL_REGISTRY,
+    AugmentationDataset,
+    get_train_transforms,
+    get_valid_transforms,
+    label2idx,
+    upload_to_wandb,
+)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -65,7 +70,7 @@ def train(config: DictConfig) -> None:
         offline=config.get("debug", False),
         job_type="train",
     )
-    dataset_builder =DATASET_REGISTRY.get(config.dataset.loader)
+    dataset_builder = DATASET_REGISTRY.get(config.dataset.loader)
     train_df, valid_df = dataset_builder(logger.experiment, config.dataset)
     # artifact = logger.experiment.use_artifact(f"{config.dataset.artifact_name}:latest", type="dataset")
     # artifact_dir = artifact.download()
@@ -103,9 +108,7 @@ def train(config: DictConfig) -> None:
     checkpoint_callback = ModelCheckpoint(
         filename="best", dirpath=config.output_dir, monitor=config["monitor"], mode="max", save_last=True, save_top_k=1
     )
-    trainer = pl.Trainer(
-        **config["trainer"], logger=logger, callbacks=[lr_monitor,  checkpoint_callback]
-    )
+    trainer = pl.Trainer(**config["trainer"], logger=logger, callbacks=[lr_monitor, checkpoint_callback])
     trainer.fit(model, train_dataloader, valid_dataloader)
     rank_zero_only(upload_to_wandb)(config.output_dir, name=config.model.backbone)
 

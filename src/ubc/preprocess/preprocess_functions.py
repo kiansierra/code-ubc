@@ -85,18 +85,20 @@ def get_cropped_images(
     df_crop = pd.DataFrame(outputs)
     return df_crop, images
 
+
 def get_crops_from_data(
-    image: Image.Image, data: pd.DataFrame, output_folder: str) -> Tuple[pd.DataFrame, List[Image.Image]]:
+    image: Image.Image, data: pd.DataFrame, output_folder: str
+) -> Tuple[pd.DataFrame, List[Image.Image]]:
     # Aspect ratio
-    records = data.to_dict('records')
+    records = data.to_dict("records")
     new_records, new_images = [], []
     for record in records:
-        sx, sy = int(record['sx']*image.size[0]), int(record['sy']*image.size[1])
-        ex, ey =  int(record['ex']*image.size[0]), int(record['ey']*image.size[1])
+        sx, sy = int(record["sx"] * image.size[0]), int(record["sy"] * image.size[1])
+        ex, ey = int(record["ex"] * image.size[0]), int(record["ey"] * image.size[1])
         save_path = f"{output_folder}/{record['image_id']}_{record['component']}.png"
         crop = image.crop((sx, sy, ex, ey))
-        new_records.append({'image_id': record['image_id'], 'path': save_path, 'component': record['component']})
-        new_images.append(crop)   
+        new_records.append({"image_id": record["image_id"], "path": save_path, "component": record["component"]})
+        new_images.append(crop)
     return pd.DataFrame(new_records), new_images
 
 
@@ -141,6 +143,7 @@ def tiler(img: Image.Image, tile_size: int, empty_threshold: float) -> Dict[Tupl
             output[(i * tile_size, j * tile_size)] = elem2
     return output
 
+
 def get_mask_weights(mask: np.ndarray) -> np.ndarray:
     """Get mask weights for weighted loss
     Args:
@@ -148,14 +151,18 @@ def get_mask_weights(mask: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: mask weights
     """
-    mask_weights = (mask > 0).astype(np.float32).mean(axis=(0,1))
-    return {k: mask_weights[v] for k,v in label2idxmask.items()}
-
+    mask_weights = (mask > 0).astype(np.float32).mean(axis=(0, 1))
+    return {k: mask_weights[v] for k, v in label2idxmask.items()}
 
 
 def tile_func(
-    img: Image.Image, img_id: int, component: int, tile_size: int,
-    empty_threshold: float, output_folder: str, get_weights:bool=False
+    img: Image.Image,
+    img_id: int,
+    component: int,
+    tile_size: int,
+    empty_threshold: float,
+    output_folder: str,
+    get_weights: bool = False,
 ):
     logger.debug(f"tiling {img_id} with {img.size} and {tile_size=}")
     tiles = tiler(img, tile_size, empty_threshold)

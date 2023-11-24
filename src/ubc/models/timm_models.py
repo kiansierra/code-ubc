@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
+
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -27,7 +28,7 @@ class GeM(nn.Module):
         return self.gem(x, p=self.p, eps=self.eps)
 
     def gem(self, x, p=3, eps=1e-6):
-        pooled =  F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1.0 / p)
+        pooled = F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1.0 / p)
         return pooled.squeeze(-1).squeeze(-1)
 
     def __repr__(self):
@@ -73,9 +74,7 @@ class BaseLightningModel(pl.LightningModule):
         self.log("train/loss", loss.mean(), prog_bar=True)
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
-        self.train_metric_global.update(
-                preds=output["probs"], target=labels, loss=loss.mean()
-            )
+        self.train_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
         if len(wsi_index):
             self.train_metric.update(
                 preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
@@ -109,9 +108,7 @@ class BaseLightningModel(pl.LightningModule):
         loss = self.loss_fn(output["logits"], labels)
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
-        self.val_metric_global.update(
-                preds=output["probs"], target=labels, loss=loss.mean()
-            )
+        self.val_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
         if len(wsi_index):
             self.val_metric.update(
                 preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
