@@ -4,7 +4,6 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
-
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -28,7 +27,8 @@ class GeM(nn.Module):
         return self.gem(x, p=self.p, eps=self.eps)
 
     def gem(self, x, p=3, eps=1e-6):
-        return F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1.0 / p)
+        pooled =  F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1.0 / p)
+        return pooled.squeeze(-1).squeeze(-1)
 
     def __repr__(self):
         return (
@@ -58,8 +58,10 @@ class BaseLightningModel(pl.LightningModule):
             EpochLoss(),
         )
         self.loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(weights) if weights else None, reduction="none")
+        self.train_metric_global = metrics.clone(prefix="train/global_")
         self.train_metric = metrics.clone(prefix="train/wsi_")
         self.train_metric_tma = metrics.clone(prefix="train/tma_")
+        self.val_metric_global = metrics.clone(prefix="val/global_")
         self.val_metric = metrics.clone(prefix="val/wsi_")
         self.val_metric_tma = metrics.clone(prefix="val/tma_")
 
@@ -71,6 +73,9 @@ class BaseLightningModel(pl.LightningModule):
         self.log("train/loss", loss.mean(), prog_bar=True)
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
+        self.train_metric_global.update(
+                preds=output["probs"], target=labels, loss=loss.mean()
+            )
         if len(wsi_index):
             self.train_metric.update(
                 preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
@@ -84,14 +89,16 @@ class BaseLightningModel(pl.LightningModule):
     def on_train_epoch_end(self) -> None:
         metrics = self.train_metric.compute()
         metrics_tma = self.train_metric_tma.compute()
+        metrics_global = self.train_metric_global.compute()
 
         self.train_metric.reset()
         self.train_metric_tma.reset()
+        self.train_metric_global.reset()
 
         averaged_metrics = {
             k.replace("wsi_", ""): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi_", "tma_")]) for k, v in metrics.items()
         }
-        all_metrics = {**averaged_metrics, **metrics, **metrics_tma}
+        all_metrics = {**averaged_metrics, **metrics, **metrics_tma, **metrics_global}
         self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
         return super().on_train_epoch_end()
 
@@ -102,6 +109,9 @@ class BaseLightningModel(pl.LightningModule):
         loss = self.loss_fn(output["logits"], labels)
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
+        self.val_metric_global.update(
+                preds=output["probs"], target=labels, loss=loss.mean()
+            )
         if len(wsi_index):
             self.val_metric.update(
                 preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
@@ -115,14 +125,16 @@ class BaseLightningModel(pl.LightningModule):
     def on_validation_epoch_end(self) -> None:
         metrics = self.val_metric.compute()
         metrics_tma = self.val_metric_tma.compute()
+        metrics_global = self.val_metric_global.compute()
 
         self.val_metric.reset()
         self.val_metric_tma.reset()
+        self.val_metric_global.reset()
 
         averaged_metrics = {
             k.replace("wsi_", ""): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi_", "tma_")]) for k, v in metrics.items()
         }
-        all_metrics = {**averaged_metrics, **metrics, **metrics_tma}
+        all_metrics = {**averaged_metrics, **metrics, **metrics_tma, **metrics_global}
         self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
         return super().on_validation_epoch_end()
 
@@ -154,7 +166,7 @@ class TimmModel(BaseLightningModel):
 
     def forward(self, images):
         features = self.backbone(images)
-        pooled_features = self.pooling(features).flatten(1)
+        pooled_features = self.pooling(features)
         logits = self.linear(pooled_features)
         output = {"logits": logits, "features": pooled_features, "probs": self.softmax(logits)}
         return output

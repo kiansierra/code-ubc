@@ -1,8 +1,9 @@
 defaults:
   - trainer: trainer_pl
-  - optimizer: adamw
+  - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
+  - dataset: crop-0.0-2048
   - _self_
 
 model:
@@ -11,9 +12,9 @@ model:
   pretrained: True
   num_classes: 5
 
-dataset:
-  path: ../input/UBC-OCEAN-PROCESSED/resized-2048-crops/train.parquet
-  artifact_name: train-crop-0.0-2048.parquet
+# dataset:
+#   path: ../input/UBC-OCEAN-PROCESSED/resized-2048-crops/train.parquet
+#   artifact_name: train_folds.parquet
 
 augmentations:
   train:
@@ -29,12 +30,12 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 2048
 fold: 0
-checkpoint_id: kq5988be
-monitor: val/MulticlassAccuracy
+checkpoint_id: mlkq8ilv
+monitor: val/global_bac
 batch_size: 2
 num_workers: 6
 
-lr: 5e-4
+lr: 2e-5
 max_steps: Null
-max_epochs: 50
+max_epochs: 30
 accumulate_grad_batches: 1

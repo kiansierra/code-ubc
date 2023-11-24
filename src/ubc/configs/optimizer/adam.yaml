@@ -1,6 +1,8 @@
   module_name: torch.optim
   obj_name: Adam
   lr: ${lr}
+  initial_lr: ${lr}
+  eps: 1.0e-08
   weight_decay: 1.0e-06
   betas:
     - 0.9
