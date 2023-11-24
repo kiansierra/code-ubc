@@ -14,9 +14,9 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
+from ubc import resize, upload_to_wandb
 
 import wandb
-from ubc import resize, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -35,7 +35,7 @@ def resize_copy(row, output_folder:str,  scale:float, image_size:int=2048):
     image.save( output_path )
     logger.info(f"save done {output_path}")
     outputs = {'image_id': row['image_id'], 'path': output_path, 'mask_path': '', 'size': image.size}
-    if os.path.exists(row['mask_path']):
+    if  os.path.exists(row['mask_path']):
         mask = Image.open( row['mask_path'])
         mask = resize(mask, scale, image_size)
         mask.save( mask_output_path )
