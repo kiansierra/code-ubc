@@ -1,4 +1,4 @@
-persistent_workers: true
+persistent_workers: false
 tr_dataloader:
   batch_size: ${batch_size}
   num_workers: ${num_workers}
@@ -10,6 +10,6 @@ tr_dataloader:
 val_dataloader:
   batch_size: ${batch_size}
   num_workers: ${num_workers}
-  drop_last: true
+  drop_last: false
   pin_memory: true
   persistent_workers :  ${dataloader.persistent_workers}
