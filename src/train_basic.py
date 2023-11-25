@@ -7,7 +7,6 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
@@ -17,10 +16,8 @@ from ubc import (
     PROJECT_NAME,
     AugmentationDataset,
     get_train_basic_transform,
-    get_train_transforms,
     get_valid_transforms,
     label2idx,
-    upload_to_wandb,
 )
 from ubc.trainer.basic_trainer import train_loop
 
@@ -79,7 +76,7 @@ def train(config: DictConfig) -> None:
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
-    weights = get_class_weights(train_df)
+    get_class_weights(train_df)
     model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=None)
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
 

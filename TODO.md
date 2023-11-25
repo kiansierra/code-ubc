@@ -3,6 +3,10 @@
 ## Future Work
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
+
+## 2023-25-11
+- [ ] Dataset configurations implement in validation
+
 ## 2023-24-11
 - [x] Dataset configurations (To train on different datasets, thumbnail, resized, cropped, etc)
 

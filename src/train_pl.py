@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 import wandb
 from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, PROJECT_NAME,
                  AugmentationDataset, get_train_transforms,
-                 get_valid_transforms, label2idx, upload_to_wandb)
+                 get_valid_transforms, label2idx, set_seed, upload_to_wandb)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -51,8 +51,9 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
 
 @hydra.main(config_path="ubc/configs", config_name="tf_efficientnet_b4_ns", version_base=None)
 def train(config: DictConfig) -> None:
-    torch.set_float32_matmul_precision("medium")
+    # torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
+    set_seed(config.seed)
     config_container = OmegaConf.to_container(config, resolve=True)
     set_debug(config)
     tags = [config.model.backbone, config.dataset.artifact_name, f"img_size-{config.img_size}"]
@@ -71,7 +72,7 @@ def train(config: DictConfig) -> None:
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     weights = get_class_weights(train_df)
-    model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=weights)
+    model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=None)
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
 
     if config.get("checkpoint_id", False):
