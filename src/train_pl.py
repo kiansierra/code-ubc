@@ -13,15 +13,9 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
 import wandb
-from ubc import (
-    DATASET_REGISTRY,
-    MODEL_REGISTRY,
-    AugmentationDataset,
-    get_train_transforms,
-    get_valid_transforms,
-    label2idx,
-    upload_to_wandb,
-)
+from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, PROJECT_NAME,
+                 AugmentationDataset, get_train_transforms,
+                 get_valid_transforms, label2idx, upload_to_wandb)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -63,7 +57,7 @@ def train(config: DictConfig) -> None:
     set_debug(config)
     tags = [config.model.backbone, config.dataset.artifact_name, f"img_size-{config.img_size}"]
     logger = WandbLogger(
-        project="UBC-OCEAN",
+        project=PROJECT_NAME,
         dir=config.output_dir,
         tags=tags,
         config=config_container,
@@ -72,16 +66,6 @@ def train(config: DictConfig) -> None:
     )
     dataset_builder = DATASET_REGISTRY.get(config.dataset.loader)
     train_df, valid_df = dataset_builder(logger.experiment, config.dataset)
-    # artifact = logger.experiment.use_artifact(f"{config.dataset.artifact_name}:latest", type="dataset")
-    # artifact_dir = artifact.download()
-    # dataset_path = f"{artifact_dir}/{config.dataset.artifact_name}"
-    # df = pd.read_parquet(dataset_path)
-    # df = df.query('image_path != thumbnail_path')
-    # df.rename(columns={'thumbnail_path': 'path'}, inplace=True)
-    # train_df = df[df["fold"] != config["fold"]].reset_index(drop=True)
-    # valid_df = df[df["fold"] == config["fold"]].reset_index(drop=True)
-    # max_images_per_label = train_df.groupby("label")['image_id'].count().max()
-    # train_df = train_df.groupby("label").sample(n=max_images_per_label, replace=True, random_state=config.seed).reset_index(drop=True)
     train_ds = AugmentationDataset(train_df, augmentation=get_train_transforms(config))
     valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
@@ -92,7 +76,7 @@ def train(config: DictConfig) -> None:
 
     if config.get("checkpoint_id", False):
         api = wandb.Api()
-        run = api.run(f"UBC-OCEAN/{config.checkpoint_id}")
+        run = api.run(f"{PROJECT_NAME}/{config.checkpoint_id}")
         ckpt_artifact_name = [
             artifact.name for artifact in run.logged_artifacts() if artifact.name.startswith(config.model.backbone)
         ][0]

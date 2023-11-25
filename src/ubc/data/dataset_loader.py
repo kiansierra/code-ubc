@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 
 from wandb import wandb_sdk
 
-from ..utils import Registry
+from ..utils import PROJECT_NAME, Registry
 
 
 class DatasetLoaderProtocol(Protocol):
@@ -25,7 +25,7 @@ DATASET_REGISTRY = Registry("dataset", DatasetLoader())
 
 @DATASET_REGISTRY.register()
 def load_thumbnails(run: wandb_sdk.wandb_run.Run, config: DictConfig):
-    artifact = run.use_artifact(f"UBC-OCEAN/{config.artifact_name}:latest", type="dataset")
+    artifact = run.use_artifact(f"{PROJECT_NAME}/{config.artifact_name}:latest", type="dataset")
     artifact_dir = artifact.download()
     df = pd.read_parquet(f"{artifact_dir}/{config.artifact_name}")
     df = df.query("thumbnail_path !=  image_path")
@@ -44,7 +44,7 @@ def load_thumbnails(run: wandb_sdk.wandb_run.Run, config: DictConfig):
 
 @DATASET_REGISTRY.register()
 def load_crop(run: wandb_sdk.wandb_run.Run, config: DictConfig):
-    artifact = run.use_artifact(f"UBC-OCEAN/{config.artifact_name}:latest", type="dataset")
+    artifact = run.use_artifact(f"{PROJECT_NAME}/{config.artifact_name}:latest", type="dataset")
     artifact_dir = artifact.download()
     df = pd.read_parquet(f"{artifact_dir}/{config.artifact_name}")
     df["path"] = df[config.column_name]
