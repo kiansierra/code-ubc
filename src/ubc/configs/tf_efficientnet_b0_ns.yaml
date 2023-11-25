@@ -3,7 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: thumbnail
+  - dataset: crop-0.0-2048
   - _self_
 
 model:
@@ -24,14 +24,14 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 2048
 fold: 0
-checkpoint_id: Null
-monitor: val/MulticlassAccuracy
-batch_size: 32
+checkpoint_id: 3kqnxlhm
+monitor: val/global/bac
+batch_size: 4
 num_workers: 6
 
-lr: 1e-4
+lr: 2e-5
 max_steps: 10000
-max_epochs: 20
+max_epochs: 25
 accumulate_grad_batches: 1

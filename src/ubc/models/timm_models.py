@@ -4,12 +4,16 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
+
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
 
+import wandb
+
+from ..data.constants import idx2label
 from ..utils import Registry
 from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
@@ -41,6 +45,19 @@ class GeM(nn.Module):
             + str(self.eps)
             + ")"
         )
+        
+def create_table(image_ids:torch.Tensor, images:torch.Tensor, labels:torch.Tensor, probs: torch.Tensor):
+    images = images.permute(0, 2, 3, 1).cpu().numpy()
+    columns = ["image_id", "image", 'label', *idx2label.values()]
+    table = []
+    image_ids = image_ids.cpu().numpy()
+    probs = probs.cpu().numpy()
+    labels = labels.cpu().numpy()
+    for image_id, image, label, prob in zip(image_ids, images, labels, probs):
+        row = [image_id, wandb.Image(image), idx2label[label]]
+        row.extend(prob)
+        table.append(row)
+    return columns, table
 
 
 class BaseLightningModel(pl.LightningModule):
@@ -58,12 +75,12 @@ class BaseLightningModel(pl.LightningModule):
             EpochLoss(),
         )
         self.loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(weights) if weights else None, reduction="none")
-        self.train_metric_global = metrics.clone(prefix="train/global_")
-        self.train_metric = metrics.clone(prefix="train/wsi_")
-        self.train_metric_tma = metrics.clone(prefix="train/tma_")
-        self.val_metric_global = metrics.clone(prefix="val/global_")
-        self.val_metric = metrics.clone(prefix="val/wsi_")
-        self.val_metric_tma = metrics.clone(prefix="val/tma_")
+        self.train_metric_global = metrics.clone(prefix="train/global/")
+        self.train_metric_wsi = metrics.clone(prefix="train/wsi/")
+        self.train_metric_tma = metrics.clone(prefix="train/tma/")
+        self.val_metric_global = metrics.clone(prefix="val/global/")
+        self.val_metric_wsi = metrics.clone(prefix="val/wsi/")
+        self.val_metric_tma = metrics.clone(prefix="val/tma/")
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         images = batch["image"]
@@ -75,7 +92,7 @@ class BaseLightningModel(pl.LightningModule):
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
         self.train_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
         if len(wsi_index):
-            self.train_metric.update(
+            self.train_metric_wsi.update(
                 preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
             )
         if len(tma_index):
@@ -85,19 +102,19 @@ class BaseLightningModel(pl.LightningModule):
         return loss.mean()
 
     def on_train_epoch_end(self) -> None:
-        metrics = self.train_metric.compute()
+        metrics = self.train_metric_wsi.compute()
         metrics_tma = self.train_metric_tma.compute()
         metrics_global = self.train_metric_global.compute()
 
-        self.train_metric.reset()
+        self.train_metric_wsi.reset()
         self.train_metric_tma.reset()
         self.train_metric_global.reset()
 
         averaged_metrics = {
-            k.replace("wsi_", ""): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi_", "tma_")]) for k, v in metrics.items()
+            k.replace("wsi/", "balanced/"): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi/", "tma/")]) for k, v in metrics.items()
         }
         all_metrics = {**averaged_metrics, **metrics, **metrics_tma, **metrics_global}
-        self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
+        self.log_dict(all_metrics, prog_bar=False, sync_dist=True)
         return super().on_train_epoch_end()
 
     def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
@@ -109,26 +126,29 @@ class BaseLightningModel(pl.LightningModule):
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
         self.val_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
         if len(wsi_index):
-            self.val_metric.update(
+            self.val_metric_wsi.update(
                 preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
             )
         if len(tma_index):
             self.val_metric_tma.update(
                 preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
             )
+        if batch_idx == 0:
+            columns, data = create_table(batch["image_id"], images, batch['label'], output["probs"])
+            self.trainer.logger.log_table("images", columns=columns, data=data)
         return super().validation_step()
 
     def on_validation_epoch_end(self) -> None:
-        metrics = self.val_metric.compute()
+        metrics = self.val_metric_wsi.compute()
         metrics_tma = self.val_metric_tma.compute()
         metrics_global = self.val_metric_global.compute()
 
-        self.val_metric.reset()
+        self.val_metric_wsi.reset()
         self.val_metric_tma.reset()
         self.val_metric_global.reset()
 
         averaged_metrics = {
-            k.replace("wsi_", ""): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi_", "tma_")]) for k, v in metrics.items()
+            k.replace("wsi/", "balanced/"): (0.5 * v + 0.5 * metrics_tma[k.replace("wsi/", "tma/")]) for k, v in metrics.items()
         }
         all_metrics = {**averaged_metrics, **metrics, **metrics_tma, **metrics_global}
         self.log_dict(all_metrics, prog_bar=True, sync_dist=True)
