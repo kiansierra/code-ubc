@@ -1,0 +1,7 @@
+loader: load_tile
+artifact_name: train-tile-0.25-2048-512.parquet
+column_name: path
+fold: ${fold}
+seed: ${seed}
+balanced: True
+remove_edges: True
