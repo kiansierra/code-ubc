@@ -56,7 +56,7 @@ def train(config: DictConfig) -> None:
     set_seed(config.seed)
     config_container = OmegaConf.to_container(config, resolve=True)
     set_debug(config)
-    tags = [config.model.backbone, config.dataset.artifact_name, f"img_size-{config.img_size}"]
+    tags = [config.model.backbone, config.model.entrypoint, config.dataset.artifact_name, f"img_size-{config.img_size}"]
     logger = WandbLogger(
         project=PROJECT_NAME,
         dir=config.output_dir,
@@ -72,7 +72,8 @@ def train(config: DictConfig) -> None:
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     weights = get_class_weights(train_df)
-    model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=None)
+    use_weights = config.model.get("use_weights", False)
+    model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=weights if use_weights else None)
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
 
     if config.get("checkpoint_id", False):
@@ -84,7 +85,9 @@ def train(config: DictConfig) -> None:
         ckpt_artifact = logger.experiment.use_artifact(ckpt_artifact_name, type="model")
         ckpt_artifact_dir = ckpt_artifact.download()
         checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
-        model.load_state_dict(torch.load(checkpoint_path)["state_dict"])
+        state_dict = torch.load(checkpoint_path)["state_dict"]
+        state_dict.pop("loss_fn.weight", None)
+        model.load_state_dict(state_dict, strict=False)
         # logger.watch(model, log="gradients", log_freq=10)
     update_output_dir(config, logger)
     save_config(config)
@@ -95,7 +98,9 @@ def train(config: DictConfig) -> None:
     )
     trainer = pl.Trainer(**config["trainer"], logger=logger, callbacks=[lr_monitor, checkpoint_callback])
     trainer.fit(model, train_dataloader, valid_dataloader)
+    run_id = logger.experiment.id
     rank_zero_only(upload_to_wandb)(config.output_dir, name=config.model.backbone)
+    return run_id 
 
 
 if __name__ == "__main__":
