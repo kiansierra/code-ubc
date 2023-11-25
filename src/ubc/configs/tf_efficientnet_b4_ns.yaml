@@ -3,7 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: crop-0.0-2048
+  - dataset: thumbnail
   - _self_
 
 model:
@@ -28,7 +28,7 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 2048
+img_size: 512
 fold: 0
 checkpoint_id: mlkq8ilv
 monitor: val/global_bac

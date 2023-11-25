@@ -6,3 +6,5 @@ min_epochs: 2
 max_epochs: ${max_epochs}
 log_every_n_steps: 20
 devices: 1
+deterministic: True
+benchmark: False

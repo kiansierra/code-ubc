@@ -3,4 +3,4 @@ artifact_name: train_folds.parquet
 column_name: thumbnail_path
 fold: ${fold}
 seed: ${seed}
-balanced: True
+balanced: False
