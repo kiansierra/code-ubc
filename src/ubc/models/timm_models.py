@@ -4,7 +4,6 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
-
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -15,7 +14,7 @@ from ..utils import Registry
 from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
 
-__all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY"]
+__all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY", "BaseLightningModel"]
 
 
 class GeM(nn.Module):
