@@ -6,6 +6,8 @@
 
 ## 2023-25-11
 - [ ] Dataset configurations implement in validation
+- [x] Config Loader
+- [ ] TrainingPipeline end to end (Dataset sequence and image size sequence)
 
 ## 2023-24-11
 - [x] Dataset configurations (To train on different datasets, thumbnail, resized, cropped, etc)
