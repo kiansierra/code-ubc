@@ -3,12 +3,12 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048
+  - dataset: crop-0.0-2048
   - _self_
 
 model:
-  entrypoint: TimmModel
-  backbone: tf_efficientnet_b0_ns
+  entrypoint: TimmBasicModel
+  backbone: eva_giant_patch14_560.m30m_ft_in22k_in1k
   pretrained: True
   num_classes: 5
 
@@ -24,14 +24,14 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 560
 fold: 0
-checkpoint_id: 3kqnxlhm
+checkpoint_id: 3rjxa7ow
 monitor: val/global/bac
-batch_size: 32
+batch_size: 1
 num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
 max_epochs: 25
-accumulate_grad_batches: 1
+accumulate_grad_batches: 32

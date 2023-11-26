@@ -3,6 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
+  - dataset: thumbnail
   - _self_
 
 model:
@@ -10,9 +11,6 @@ model:
   backbone: tf_efficientnetv2_s_in21ft1k
   pretrained: True
   num_classes: 5
-
-dataset:
-  path: ../input/UBC-OCEAN-PROCESSED/resized-2048-crops/train.parquet
 
 augmentations:
   train:
@@ -26,11 +24,11 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: [512, 1024, 2048]
+img_size: 512
 fold: 0
 checkpoint_id: Null
-monitor: val/MulticlassAccuracy
-batch_size: 2
+monitor: val/global/bac
+batch_size: 16
 num_workers: 6
 
 lr: 5e-4

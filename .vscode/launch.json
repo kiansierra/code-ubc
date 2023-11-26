@@ -19,7 +19,21 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnet_b0_ns"
+                "--config-name", "eva_giant_patch14_560"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Train Multiscale",
+            "type": "python",
+            "request": "launch",
+            "program": "src/train_pl_multiscale.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--config-name", "tf_efficientnetv2_s_in21ft1k"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"

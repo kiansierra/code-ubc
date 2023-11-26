@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
-
+from einops import rearrange
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -193,6 +193,7 @@ class TimmVITModel(BaseLightningModel):
     def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
         super().__init__(config, weights=weights)
         model_config = config["model"]
+        
         self.backbone = timm.create_model(
             model_config["backbone"], pretrained=model_config["pretrained"], num_classes=0
         )
@@ -207,3 +208,105 @@ class TimmVITModel(BaseLightningModel):
         logits = self.linear(features)
         output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
         return output
+    
+@MODEL_REGISTRY.register()
+class TimmBasicModel(BaseLightningModel):
+    def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
+        super().__init__(config, weights=weights)
+        model_config = config["model"]
+        
+        self.backbone = timm.create_model(
+            model_config["backbone"], pretrained=model_config["pretrained"], num_classes=model_config["num_classes"]
+        )
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, images):
+        features = self.backbone.forward_features(images)
+        logits = self.backbone.forward_head(features)
+        output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
+        return output
+
+
+@MODEL_REGISTRY.register()
+class TileModel(BaseLightningModel):
+    def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
+        super().__init__(config, weights=weights)
+        model_config = config["model"]
+        num_tiles = 8
+        self.example_input_array = {
+            'images' :torch.zeros((1, num_tiles, 3, config["img_size"], config["img_size"])),
+            'x_pos' :torch.zeros((1, num_tiles)).long(),
+            'y_pos' :torch.zeros((1, num_tiles)).long()
+        }
+        
+        self.backbone = timm.create_model("tf_efficientnet_b0_ns", pretrained=True)
+        self.backbone.classifier = nn.Identity()
+        self.backbone.global_pool = nn.Identity()
+        self.pooling = GeM()
+        self.x_embed = nn.Embedding(64, self.backbone.num_features)
+        self.y_embed = nn.Embedding(64, self.backbone.num_features)
+        self.layers = nn.ModuleList([
+            nn.TransformerEncoderLayer(self.backbone.num_features, model_config["num_heads"], batch_first=True) 
+            for _ in range(model_config["num_layers"])
+            ])
+        
+        self.head = nn.Linear(self.backbone.num_features, model_config["num_classes"])
+        self.softmax = nn.Softmax(dim=1)
+        
+        
+    def get_features(self, x: torch.Tensor) -> torch.Tensor:
+        bs = x.shape[0]
+        x = rearrange(x, 'b n c h w -> (b n) c h w')
+        features =  self.backbone(x)
+        features = self.pooling(features)
+        features = rearrange(features, '(b n) c -> b n c', b=bs)
+        return features
+
+    def forward(self, images: torch.Tensor, x_pos:torch.Tensor, y_pos:torch.Tensor) -> torch.Tensor:
+        features =  self.get_features(images)
+        x_embed = self.x_embed(x_pos)
+        y_embed = self.y_embed(y_pos)
+        features = features + x_embed + y_embed
+        for layer in self.layers:
+            features = layer(features)
+        features = features.mean(dim=1)
+        logits = self.head(features)
+        output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
+        return output
+    
+    def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
+        images = batch["image"]
+        labels = batch["label"]
+        output = self(images, batch['pos_x'], batch['pos_y'])
+        loss = self.loss_fn(output["logits"], labels)
+        self.log("train/loss", loss.mean(), prog_bar=True)
+        tma_index = torch.where(batch["is_tma"] == 1)[0]
+        wsi_index = torch.where(batch["is_tma"] == 0)[0]
+        self.train_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
+        if len(wsi_index):
+            self.train_metric_wsi.update(
+                preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
+            )
+        if len(tma_index):
+            self.train_metric_tma.update(
+                preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
+            )
+        return loss.mean()
+    
+    def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
+        images = batch["image"]
+        labels = batch["label"]
+        output = self(images, batch['pos_x'], batch['pos_y'])
+        loss = self.loss_fn(output["logits"], labels)
+        tma_index = torch.where(batch["is_tma"] == 1)[0]
+        wsi_index = torch.where(batch["is_tma"] == 0)[0]
+        self.val_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
+        if len(wsi_index):
+            self.val_metric_wsi.update(
+                preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
+            )
+        if len(tma_index):
+            self.val_metric_tma.update(
+                preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
+            )
+        return 

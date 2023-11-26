@@ -7,10 +7,12 @@ defaults:
   - _self_
 
 model:
-  entrypoint: TimmModel
+  entrypoint: TileModel
   backbone: tf_efficientnet_b0_ns
   pretrained: True
   num_classes: 5
+  num_heads: 8
+  num_layers: 4
 
 augmentations:
   train:
@@ -28,7 +30,7 @@ img_size: 512
 fold: 0
 checkpoint_id: 3kqnxlhm
 monitor: val/global/bac
-batch_size: 32
+batch_size: 2
 num_workers: 6
 
 lr: 2e-5
