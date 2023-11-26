@@ -13,17 +13,11 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
 import wandb
-from ubc import (
-    DATASET_REGISTRY,
-    MODEL_REGISTRY,
-    PROJECT_NAME,
-    AugmentationDataset,
-    get_train_transforms,
-    get_valid_transforms,
-    label2idx,
-    set_seed,
-    upload_to_wandb,
-)
+
+from ..data import (DATASET_REGISTRY, AugmentationDataset,
+                    get_train_transforms, get_valid_transforms, label2idx)
+from ..models import MODEL_REGISTRY
+from ..utils import PROJECT_NAME, set_seed, upload_to_wandb
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
