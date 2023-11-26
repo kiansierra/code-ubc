@@ -12,7 +12,6 @@ class DatasetLoaderProtocol(Protocol):
     def __call__(self, run: wandb_sdk.wandb_run.Run, config: DictConfig) -> Tuple[pd.DataFrame, pd.DataFrame]:
         ...
 
-
 class DatasetLoader(DatasetLoaderProtocol):
     def __call__(self, run: wandb_sdk.wandb_run.Run, config: DictConfig) -> Tuple[pd.DataFrame, pd.DataFrame]:
         pass
@@ -28,8 +27,8 @@ def load_thumbnails(run: wandb_sdk.wandb_run.Run, config: DictConfig):
     artifact = run.use_artifact(f"{PROJECT_NAME}/{config.artifact_name}:latest", type="dataset")
     artifact_dir = artifact.download()
     df = pd.read_parquet(f"{artifact_dir}/{config.artifact_name}")
-    df = df.query("thumbnail_path !=  image_path")
     df["path"] = df[config.column_name]
+    df = df.query("thumbnail_path !=  image_path")
     train_df = df.query(f"fold != {config.fold}").reset_index(drop=True)
     val_df = df.query(f"fold == {config.fold}").reset_index(drop=True)
     if config.get("balance", False):
