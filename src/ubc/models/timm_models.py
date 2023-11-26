@@ -4,13 +4,13 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
-
+from einops import rearrange
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.nn import functional as F
-from einops import rearrange
+
 import wandb
 
 from ..data.constants import idx2label
@@ -206,6 +206,23 @@ class TimmVITModel(BaseLightningModel):
     def forward(self, images):
         features = self.backbone(images)
         logits = self.linear(features)
+        output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
+        return output
+    
+@MODEL_REGISTRY.register()
+class TimmBasicModel(BaseLightningModel):
+    def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
+        super().__init__(config, weights=weights)
+        model_config = config["model"]
+        
+        self.backbone = timm.create_model(
+            model_config["backbone"], pretrained=model_config["pretrained"], num_classes=model_config["num_classes"]
+        )
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, images):
+        features = self.backbone.forward_features(images)
+        logits = self.backbone.forward_head(features)
         output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
         return output
 

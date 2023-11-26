@@ -19,7 +19,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnetv2_s_in21ft1k"
+                "--config-name", "eva_giant_patch14_560"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"
