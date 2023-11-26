@@ -56,7 +56,8 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
     class_weights = inverse_class_counts / inverse_class_counts.sum()
     return class_weights.tolist()
 
-def load_checkpoint(config:DictConfig, model: pl.LightningModule, wandb_logger:WandbLogger) -> None:
+
+def load_checkpoint(config: DictConfig, model: pl.LightningModule, wandb_logger: WandbLogger) -> None:
     api = wandb.Api()
     run = api.run(f"{PROJECT_NAME}/{config.checkpoint_id}")
     ckpt_artifact_name = [
@@ -77,7 +78,12 @@ def train_pl_run(config: DictConfig) -> None:
     set_seed(config.seed)
     config_container = OmegaConf.to_container(config, resolve=True)
     set_debug(config)
-    tags = [config.model.backbone, config.model.entrypoint, config.dataset.artifact_name, f"img_size-{config.img_size}"]
+    tags = [
+        config.model.backbone,
+        config.model.entrypoint,
+        config.dataset.artifact_name,
+        f"img_size-{config.img_size}",
+    ]
     wandb_logger = WandbLogger(
         project=PROJECT_NAME,
         dir=config.output_dir,
@@ -111,5 +117,4 @@ def train_pl_run(config: DictConfig) -> None:
     trainer.fit(model, train_dataloader, valid_dataloader)
     run_id = wandb_logger.experiment.id
     rank_zero_only(upload_to_wandb)(config.output_dir, name=config.model.backbone)
-    return run_id 
-
+    return run_id

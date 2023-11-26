@@ -13,9 +13,17 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
 import wandb
-from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, PROJECT_NAME,
-                 AugmentationDataset, get_train_transforms, TileDataset,
-                 get_valid_transforms, label2idx, set_seed, upload_to_wandb)
+from ubc import (
+    DATASET_REGISTRY,
+    MODEL_REGISTRY,
+    PROJECT_NAME,
+    get_train_transforms,
+    TileDataset,
+    get_valid_transforms,
+    label2idx,
+    set_seed,
+    upload_to_wandb,
+)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
@@ -56,7 +64,12 @@ def train(config: DictConfig) -> None:
     set_seed(config.seed)
     config_container = OmegaConf.to_container(config, resolve=True)
     set_debug(config)
-    tags = [config.model.backbone, config.model.entrypoint, config.dataset.artifact_name, f"img_size-{config.img_size}"]
+    tags = [
+        config.model.backbone,
+        config.model.entrypoint,
+        config.dataset.artifact_name,
+        f"img_size-{config.img_size}",
+    ]
     logger = WandbLogger(
         project=PROJECT_NAME,
         dir=config.output_dir,
@@ -71,7 +84,7 @@ def train(config: DictConfig) -> None:
     valid_ds = TileDataset(valid_df, augmentation=get_valid_transforms(config))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
-    weights = get_class_weights(train_df)
+    get_class_weights(train_df)
     model = MODEL_REGISTRY.get(config.model.entrypoint)(config, weights=None)
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
 
