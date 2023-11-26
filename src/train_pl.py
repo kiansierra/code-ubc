@@ -9,6 +9,7 @@ def train(config: DictConfig) -> None:
     # torch.set_float32_matmul_precision("medium")
     train_pl_run(config)
 
+
 if __name__ == "__main__":
     train()  # pylint: disable=no-value-for-parameter
     print("Done!")

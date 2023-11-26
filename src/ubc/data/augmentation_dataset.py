@@ -42,7 +42,6 @@ class AugmentationDataset(Dataset):
         return output
 
 
-
 class TileDataset(Dataset):
     """
     Dataset class for loading images as tiles and labels.
@@ -56,9 +55,10 @@ class TileDataset(Dataset):
         self.num_images = 8
         self.tile_size = 512
         if augmentation:
-            self.augmentation = A.Compose(augmentation.transforms,
-                                      additional_targets={f"image_{num}": "image" for num in range(self.num_images-1)})
-        
+            self.augmentation = A.Compose(
+                augmentation.transforms,
+                additional_targets={f"image_{num}": "image" for num in range(self.num_images - 1)},
+            )
 
     def __len__(self) -> int:
         return len(self.image_ids)
@@ -75,14 +75,16 @@ class TileDataset(Dataset):
         images = [self.load_image(row["path"]) for _, row in group.iterrows()]
         if self.augmentation:
             images_dict = {f"image_{num}": image for num, image in enumerate(images[1:])}
-            images_dict['image'] = images[0]
+            images_dict["image"] = images[0]
             transformed_images = self.augmentation(**images_dict)
-            images = [transformed_images["image"]] +  [transformed_images[f"image_{num}"] for num in range(self.num_images-1)]
+            images = [transformed_images["image"]] + [
+                transformed_images[f"image_{num}"] for num in range(self.num_images - 1)
+            ]
             images = torch.stack(images)
         output = {"image_id": image_id, "image": images}
-        output['pos_x'] = group['i'].values // self.tile_size
-        output['pos_y'] = group['j'].values // self.tile_size
-        
+        output["pos_x"] = group["i"].values // self.tile_size
+        output["pos_y"] = group["j"].values // self.tile_size
+
         if "label" in group:
             output["label"] = label2idx[group.iloc[0]["label"]]
         if "is_tma" in group:
