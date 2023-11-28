@@ -1,9 +1,9 @@
 defaults:
   - trainer: trainer_pl
-  - optimizer: adam
+  - optimizer: adamw
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: crop-0.0-2048
+  - dataset: tile-0.25-2048
   - _self_
 
 model:
@@ -33,5 +33,5 @@ num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 25
+max_epochs: 1
 accumulate_grad_batches: 32

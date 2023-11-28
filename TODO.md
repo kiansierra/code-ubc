@@ -3,11 +3,16 @@
 ## Future Work
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
+## 2023-28-11
+- [x] End to end preprocessing pipeline, using crop positions
+- [ ] Compare component cropping time with and without given positions
+
+
 
 ## 2023-25-11
-- [ ] Dataset configurations implement in validation
+- [x] Dataset configurations implement in validation
 - [x] Config Loader
-- [ ] TrainingPipeline end to end (Dataset sequence and image size sequence)
+- [x] TrainingPipeline end to end (Dataset sequence and image size sequence)
 
 ## 2023-24-11
 - [x] Dataset configurations (To train on different datasets, thumbnail, resized, cropped, etc)
@@ -25,7 +30,7 @@
 ## 2023-20-11
 - [ ] Implemented Aggredated Tile Metric
 - [x] Implementing Checkpoint Validation
-- [ ] Implementing Preprocessing Pipeline (Passing Images instead of load save in each phase)
+- [ ] ~~Implementing Preprocessing Pipeline (Passing Images instead of load save in each phase)~~
 - [x] Normalize Crop positions to 0-1
 
 ## 2023-19-11

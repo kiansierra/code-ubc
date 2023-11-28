@@ -1,0 +1,10 @@
+column_name: image_path
+artifact_name: train-crop-0.0-2048.parquet
+imgsize: 2048
+scale: 0.25
+tilesize: 512
+empty_threshold: 0.3
+dataframe_path: ../input/UBC-OCEAN-PROCESSED/crop-0.0-2048/train-crop-0.0-2048.parquet
+output_folder: ../input/UBC-OCEAN-PROCESSED/res-crop-tile-${scale}-${imgsize}-${tilesize}
+output_name: train-res-crop-tile-${scale}-${imgsize}-${tilesize}.parquet
+num_processes: 6

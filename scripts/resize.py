@@ -14,9 +14,9 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-from ubc import resize, upload_to_wandb
 
 import wandb
+from ubc import resize, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -64,7 +64,7 @@ def main(config: DictConfig):
         with mp.Pool(config.num_processes) as pool:
             outputs = pool.map(resize_partial, records)
     outputs_df = pd.DataFrame(outputs)
-    df = outputs_df.merge(df[['image_id', 'is_tma', 'label', 'fold', config.column_name]], on='image_id', how='left')
+    df = outputs_df.merge(df[['image_id', 'is_tma', 'label', 'fold', "image_path","thumbnail_path"]], on='image_id', how='left')
     df.to_parquet(f"{config.output_folder}/{config.output_name}")
     if config.artifact_name:
         artifact = upload_to_wandb(config.output_folder, config.output_name, pattern="*.parquet",
