@@ -11,14 +11,14 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
-from PIL import Image
-from ubc import get_cropped_images, get_crops_from_data, upload_to_wandb
+from PIL import Image, ImageFile
 
 import wandb
+from ubc import get_cropped_images, get_crops_from_data, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
-
+# ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def crop(row, output_folder):
     image_output_folder = f"{output_folder}/images"
@@ -63,7 +63,7 @@ def main(config: DictConfig) -> None:
     output_df = pd.concat(outputs)
     output_df['component'] = output_df.index
     output_df.reset_index(drop=True, inplace=True)
-    output_df = output_df.merge(df[['image_id', 'is_tma', 'label', 'fold']], on='image_id', how='left')
+    output_df = output_df.merge(df[['image_id', 'is_tma', 'label', 'fold', "image_path","thumbnail_path"]], on='image_id', how='left')
     output_df.to_parquet(f"{config.output_folder}/{config.output_name}")
     if config.artifact_name:
         artifact = upload_to_wandb(config.output_folder, config.output_name, pattern="*.parquet",
