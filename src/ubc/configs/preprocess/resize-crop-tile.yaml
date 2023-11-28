@@ -1,5 +1,5 @@
 column_name: image_path
-artifact_name: ''
+artifact_name: train-crop-0.0-2048.parquet
 imgsize: 2048
 scale: 0.25
 tilesize: 512
