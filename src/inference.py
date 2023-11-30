@@ -10,18 +10,11 @@ from loguru import logger
 from omegaconf import OmegaConf
 from sklearn.metrics import balanced_accuracy_score
 from torch.utils.data import DataLoader
-from ubc import (
-    DATASET_REGISTRY,
-    MODEL_REGISTRY,
-    PROJECT_NAME,
-    AugmentationDataset,
-    TimmModel,
-    get_valid_transforms,
-    idx2label,
-    label2idx,
-)
 
 import wandb
+from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, PROJECT_NAME,
+                 AugmentationDataset, TimmModel, get_valid_transforms,
+                 idx2label, label2idx)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
@@ -57,15 +50,15 @@ def inference() -> None:
     config.dataloader.val_dataloader.shuffle = False
     config.dataloader.val_dataloader.num_workers = args.num_workers
     config.dataloader.val_dataloader.batch_size = args.batch_size
-    dataloader = DataLoader(ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
+    dataloader = DataLoader(ds, **config.dataloader.val_dataloader)
     builder = MODEL_REGISTRY.get(config.model.entrypoint)
     model = builder.load_from_checkpoint(checkpoint_path, config=config, strict=False)
     trainer = pl.Trainer(devices=1)
     predictions = trainer.predict(model, dataloader)
     predictions = {k: torch.cat([elem[k] for elem in predictions], dim=0) for k in predictions[0].keys()}
     probs = predictions.pop("probs")
-    image_ids = predictions.pop("image_id")
+    _ = predictions.pop("image_id")
     for idx in range(probs.shape[1]):
         predictions[idx2label[idx]] = probs[:, idx]
     pred_df = df.join(pd.DataFrame(predictions))
@@ -74,6 +67,5 @@ def inference() -> None:
 
 
 if __name__ == "__main__":
-    
     inference()  # pylint: disable=no-value-for-parameter
     print("Done!")
