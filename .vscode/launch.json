@@ -19,7 +19,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnet_b4_ns"
+                "--config-name", "convnext_xxlarge.clip_laion2b_soup_ft_in1k"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"
@@ -63,6 +63,20 @@
             "console": "integratedTerminal",
             "args": [
                 "--checkpoint-id", "3rjxa7ow"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Inference",
+            "type": "python",
+            "request": "launch",
+            "program": "src/inference.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--checkpoint-folder", "../checkpoints/tf_efficientnet_b4_ns/3yzae0fi",
+                "--input-df-path", "../input/UBC-OCEAN-PROCESSED/tile-0.25-2048-512/train-tile-0.25-2048-512.parquet",
+                "--output-df-path", "output-3yzae0fi.parquet"
+
             ],
             "justMyCode": false
         },

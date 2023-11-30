@@ -5,6 +5,7 @@ from omegaconf import DictConfig
 
 from wandb import wandb_sdk
 
+from ..data.constants import label2idxmask
 from ..utils import PROJECT_NAME, Registry
 
 
@@ -73,6 +74,11 @@ def load_tile(run: wandb_sdk.wandb_run.Run, config: DictConfig):
         df = df.query("i != max_i and j != max_j").reset_index(drop=True)
     train_df = df.query(f"fold != {config.fold}").reset_index(drop=True)
     val_df = df.query(f"fold == {config.fold}").reset_index(drop=True)
+    
+    if mask_weight := config.get("mask_weight", False):
+        train_df['mask_weight'] = train_df[label2idxmask.keys()].fillna(0).sum(1)
+        train_df = train_df.query("mask_weight > @mask_weight")
+    
     if config.get("balance", False):
         max_images_per_label = train_df.groupby("label")["image_id"].count().max()
         train_df = (
@@ -81,3 +87,5 @@ def load_tile(run: wandb_sdk.wandb_run.Run, config: DictConfig):
             .reset_index(drop=True)
         )
     return train_df, val_df
+
+

@@ -13,9 +13,9 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-from ubc import tile_func, upload_to_wandb
 
 import wandb
+from ubc import tile_func, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -55,7 +55,8 @@ def main(config: DictConfig) -> None:
         outputs = list(map(tile_save, records))
     output_df = pd.concat(outputs)
     output_df.reset_index(drop=True, inplace=True)
-    output_df = output_df.merge(df.rename(columns={'path': 'component_path'}), on=['image_id', 'component'], how='left')
+    df.rename(columns={'path': 'component_path', 'mask_path': 'mask_component_path'}, inplace=True)
+    output_df = output_df.merge(df, on=['image_id', 'component'], how='left')
     output_df.to_parquet(f"{config.output_folder}/{config.output_name}")
     if config.artifact_name:
         artifact = upload_to_wandb(config.output_folder, config.output_name, pattern="*.parquet",

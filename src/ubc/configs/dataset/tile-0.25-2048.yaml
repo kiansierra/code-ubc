@@ -5,3 +5,4 @@ fold: ${fold}
 seed: ${seed}
 balanced: True
 remove_edges: True
+mask_weight: 0.0

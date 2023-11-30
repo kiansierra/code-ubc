@@ -3,9 +3,13 @@
 ## Future Work
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
+## 2023-29-11
+- [x] Inference Script, takes in dataframe and checkpoint folder
+
+
 ## 2023-28-11
 - [x] End to end preprocessing pipeline, using crop positions
-- [ ] Compare component cropping time with and without given positions
+- [ ] ~~ Compare component cropping time with and without given positions ~~
 
 
 

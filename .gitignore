@@ -45,5 +45,5 @@ src/*.egg-info/*
 test_trainer/*
 *.csv
 *.ipynb
-
+*.parquet
 

@@ -1,16 +1,16 @@
 defaults:
   - trainer: trainer_pl
-  - optimizer: adam
+  - optimizer: adamw
   - scheduler: cosine_annealing
   - dataloader: dataloader
   - dataset: tile-0.25-2048
   - _self_
 
 model:
-  entrypoint: TimmModel
-  backbone: tf_efficientnetv2_s_in21ft1k
+  entrypoint: TimmBasicModel
+  backbone: convnext_xxlarge.clip_laion2b_soup_ft_in1k
   pretrained: True
-  num_classes: 6
+  num_classes: 5
 
 augmentations:
   train:
@@ -24,14 +24,14 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 256
 fold: 0
-checkpoint_id: f9weiuw3
+checkpoint_id: Null
 monitor: val/global/bac
-batch_size: 32
+batch_size: 2
 num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 20
-accumulate_grad_batches: 1
+max_epochs: 1
+accumulate_grad_batches: 16

@@ -51,6 +51,8 @@ class GeM(nn.Module):
 def create_table(image_ids: torch.Tensor, images: torch.Tensor, labels: torch.Tensor, probs: torch.Tensor):
     images = images.permute(0, 2, 3, 1).cpu().numpy()
     columns = ["image_id", "image", "label", *idx2label.values()]
+    if probs.shape[1] != len(idx2label):
+        columns = columns[:-1]
     table = []
     image_ids = image_ids.cpu().numpy()
     probs = probs.cpu().numpy()

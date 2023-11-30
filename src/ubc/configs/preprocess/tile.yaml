@@ -1,9 +1,9 @@
 imgsize: 2048
-scale: 0.0
+scale: 0.25
 tile_size: 512
 output_folder: ../input/UBC-OCEAN-PROCESSED/tile-${scale}-${imgsize}-${tile_size}
 output_name: train-tile-${scale}-${imgsize}-${tile_size}.parquet
 dataframe_path: Null
 artifact_name: train-crop-${scale}-${imgsize}.parquet
-num_processes: 0
+num_processes: 6
 empty_threshold: 0.3
