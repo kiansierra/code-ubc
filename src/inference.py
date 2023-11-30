@@ -31,8 +31,10 @@ def parser():
     parser = argparse.ArgumentParser(description="validation")
     parser.add_argument("--checkpoint-folder", type=str, help="Checkpoint folder to validated", required=True)
     parser.add_argument("--input-df-path", type=str, help="Path to dataframe to run inference", required=True)
-    parser.add_argument("--output-df-path", type=str, help="Path to save inference dataframe", default='best', required=True)
+    parser.add_argument("--output-df-path", type=str, help="Path to save inference dataframe", default='output.parquet', required=True)
     parser.add_argument("--checkpoint-variant", type=str, help="Checkpoint variant to validated", default='best')
+    parser.add_argument("--num-workers", type=int, help="Num workers for dataloader", default=4)
+    parser.add_argument("--batch-size", type=int, help="Batch size for dataloader", default=2)
     return parser.parse_args()
 
 
@@ -53,6 +55,8 @@ def inference() -> None:
     df = pd.read_parquet(args.input_df_path)
     ds = AugmentationDataset(df, augmentation=get_valid_transforms(config))
     config.dataloader.val_dataloader.shuffle = False
+    config.dataloader.val_dataloader.num_workers = args.num_workers
+    config.dataloader.val_dataloader.batch_size = args.batch_size
     dataloader = DataLoader(ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
     builder = MODEL_REGISTRY.get(config.model.entrypoint)
@@ -62,8 +66,8 @@ def inference() -> None:
     predictions = {k: torch.cat([elem[k] for elem in predictions], dim=0) for k in predictions[0].keys()}
     probs = predictions.pop("probs")
     image_ids = predictions.pop("image_id")
-    for k, v in label2idx.items():
-        predictions[k] = probs[:, v]
+    for idx in range(probs.shape[1]):
+        predictions[idx2label[idx]] = probs[:, idx]
     pred_df = df.join(pd.DataFrame(predictions))
     pred_df.to_parquet(args.output_df_path)
 
