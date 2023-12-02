@@ -14,7 +14,8 @@ from torch.utils.data import DataLoader
 
 import wandb
 
-from ..data import DATASET_REGISTRY, AugmentationDataset, get_train_transforms, get_valid_transforms, label2idx
+from ..data import (DATASET_REGISTRY, AugmentationDataset,
+                    get_train_transforms, get_valid_transforms, label2idx)
 from ..models import MODEL_REGISTRY
 from ..utils import PROJECT_NAME, set_seed, upload_to_wandb
 

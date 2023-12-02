@@ -19,7 +19,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "convnext_xxlarge.clip_laion2b_soup_ft_in1k"
+                "--config-name", "tf_efficientnet_b4_ns"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"
@@ -33,7 +33,7 @@
             "program": "src/train_pl_multiscale.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnetv2_s_in21ft1k"
+                "--config-name", "multiscale-base"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"
@@ -62,7 +62,7 @@
             "program": "src/validation.py",
             "console": "integratedTerminal",
             "args": [
-                "--checkpoint-id", "3rjxa7ow"
+                "--checkpoint-id", "3elwuamv"
             ],
             "justMyCode": false
         },
