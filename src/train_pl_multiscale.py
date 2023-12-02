@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 
 import hydra
@@ -10,21 +11,24 @@ from ubc import get_configs, train_pl_run
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
 
-@hydra.main(config_path="ubc/configs", config_name="tf_efficientnetv2_s_in21ft1k", version_base=None)
+@hydra.main(config_path="ubc/configs/multiscale", config_name="multiscale-base", version_base=None)
 def train_pipeline(config: DictConfig) -> None:
+    base_config = get_configs()[config.get("base_model")]
+    config_lengths = {k:len(v) for k,v in config.items() if k != 'base_model'}
+    output_dir = copy.deepcopy(base_config.output_dir)
+    assert len(set(config_lengths.values())) == 1, f"Lengths of config lists don't match {config_lengths}"
     checkpoint_id = None
-    img_sizes = [512, 1024, 1536, 2048, 2048, 512]
-    learning_rates = [1e-4, 5e-5, 2e-5, 1e-5, 1e-5, 2e-5]
-    batch_sizes = [32, 8, 4, 2, 2, 32]
-    datasets = ["thumbnail", "thumbnail", "thumbnail", "thumbnail", "crop-0.0-2048", "tile-0.25-2048"]
-    assert len(img_sizes) == len(learning_rates) == len(batch_sizes) == len(datasets), "Lengths don't match"
-    for img_size, lr, dataset, batch_size in zip(img_sizes, learning_rates, datasets, batch_sizes):
-        config.img_size = img_size
-        config.lr = lr
-        config.batch_size = batch_size
-        config.dataset = get_configs(folder="dataset")[dataset]
-        config.checkpoint_id = checkpoint_id
-        checkpoint_id = train_pl_run(config)
+    num_steps = list(config_lengths.values())[0]
+    config_keys = ["dataset", "optimizer"]
+    for num in range(num_steps):
+        for k in config_lengths.keys():
+            if k in config_keys:
+                base_config.dataset = get_configs(folder=k)[config[k][num]]
+            else:
+                base_config[k] = config[k][num]
+        base_config.checkpoint_id = checkpoint_id
+        checkpoint_id = train_pl_run(base_config)
+        base_config.output_dir = output_dir
         logger.info(f"Checkpoint ID: {checkpoint_id}")
         torch.cuda.empty_cache()
 
