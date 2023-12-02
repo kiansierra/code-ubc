@@ -1,0 +1,7 @@
+base_model: 'tf_efficientnet_b5_ns'
+img_size: [512, 1024, 1536, 2048, 2048, 512]
+lr: [1e-4, 5e-5, 2e-5, 1e-5, 2e-5, 2e-5]
+batch_size: [8, 4, 2, 2, 2, 8]
+dataset: ["thumbnail", "thumbnail", "thumbnail", "thumbnail", "crop-0.0-2048", "tile-0.25-2048"]
+max_epochs: [20, 20, 20, 20, 20, 10]
+accumulate_grad_batches: [4, 8, 16, 16, 16, 4]

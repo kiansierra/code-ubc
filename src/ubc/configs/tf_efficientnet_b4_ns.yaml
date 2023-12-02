@@ -11,6 +11,7 @@ model:
   backbone: tf_efficientnet_b4_ns
   pretrained: True
   num_classes: 5
+  use_weights: True
 
 augmentations:
   train:
@@ -26,12 +27,12 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 512
 fold: 0
-checkpoint_id: zxk1nu7a
+checkpoint_id: b10jsmwb
 monitor: val/global/bac
 batch_size: 32
 num_workers: 6
 
 lr: 2e-5
 max_steps: Null
-max_epochs: 30
+max_epochs: 20
 accumulate_grad_batches: 1
