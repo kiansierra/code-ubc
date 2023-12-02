@@ -78,8 +78,11 @@ class BaseLightningModel(pl.LightningModule):
             ClassBalancedAccuracy(num_classes=model_config["num_classes"], average="macro"),
             EpochLoss(),
         )
-        self.loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(weights) if weights else None, reduction="none",
-                                           label_smoothing=model_config.get("label_smoothing", 0.0))
+        self.loss_fn = nn.CrossEntropyLoss(
+            weight=torch.tensor(weights) if weights else None,
+            reduction="none",
+            label_smoothing=model_config.get("label_smoothing", 0.0),
+        )
         self.train_metric_global = metrics.clone(prefix="train/global/")
         self.train_metric_wsi = metrics.clone(prefix="train/wsi/")
         self.train_metric_tma = metrics.clone(prefix="train/tma/")
