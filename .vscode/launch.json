@@ -112,6 +112,16 @@
             "args": [
             ],
             "justMyCode": false
+        },
+        {
+            "name": "Tile Images",
+            "type": "python",
+            "request": "launch",
+            "program": "scripts/tile.py",
+            "console": "integratedTerminal",
+            "args": [
+            ],
+            "justMyCode": false
         }
     ]
 }
