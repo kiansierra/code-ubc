@@ -13,17 +13,17 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
+from ubc import get_cropped_images, get_crops_from_data, resize, tile_func, upload_to_wandb
 
 import wandb
-from ubc import (get_cropped_images, get_crops_from_data, resize, tile_func,
-                 upload_to_wandb)
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
 
-def resize_crop_tile(group, scale:float, image_size:int=2048, tilesize:int=512, empty_treshold:float=0.1, output_folder:str=None):
+def resize_crop_tile(group, scale:float, image_size:int=2048, tilesize:int=512, empty_treshold:float=0.1,
+                     output_folder:str=None, center_crop:bool=False):
     img_path = group.iloc[0]['path']
     img_id = group.iloc[0]['image_id']
     logger.info(f"Starting processing for {img_id=}")
@@ -34,7 +34,7 @@ def resize_crop_tile(group, scale:float, image_size:int=2048, tilesize:int=512, 
     logger.info(f"crop done for {img_id=}")
     dfs = []
     for component_num, img in zip(group['component'], images):
-        tile_df = tile_func(img, img_id, component_num, tilesize, empty_treshold, output_folder)
+        tile_df = tile_func(img, img_id, component_num, tilesize, empty_treshold, output_folder, center_crop=center_crop)
         dfs.append(tile_df)
         logger.info(f"tilling done for {img_id=} {component_num=} to {len(tile_df)} tiles")
     return pd.concat(dfs)
@@ -56,7 +56,8 @@ def main(config: DictConfig) -> None:
     output_folder.mkdir(parents=True, exist_ok=True)
     resize_copy_partial = partial(resize_crop_tile, output_folder=config.output_folder,
                                   image_size=config.imgsize, scale=config.scale,
-                                  empty_treshold=config.empty_threshold, tilesize=config.tilesize)
+                                  empty_treshold=config.empty_threshold, tilesize=config.tilesize,
+                                  center_crop=config.center_crop)
     if config.num_processes > 1:
         with mp.Pool(config.num_processes) as pool:
             outputs = pool.map(resize_copy_partial, groups)
