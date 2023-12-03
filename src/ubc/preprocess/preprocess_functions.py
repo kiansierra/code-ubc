@@ -10,6 +10,29 @@ from PIL import Image
 from ..data.constants import label2idxmask
 
 
+def get_crop_positions(img:Image.Image, image_id:int, output_folder:str, min_pct:float=0.02) -> Tuple[pd.DataFrame, List[Image.Image]]:
+    mask = np.max(np.array(img) > 0, axis=-1).astype(np.uint8)
+    retval, labels = cv2.connectedComponents(mask)
+    postions = []
+    crops = []
+    component = 0
+    for i in range(1, retval):
+        valid_pixels = (labels == i) * mask ==1
+        img_pct = valid_pixels.sum() / np.prod(mask.shape)
+        if img_pct < min_pct:
+            continue
+        y, x = np.where(valid_pixels)
+        crops.append(img.crop((x.min(), y.min(), x.max(), y.max())))
+        sy, ey = y.min() / img.size[1], y.max() / img.size[1]
+        sx, ex = x.min() / img.size[0], x.max() / img.size[0]
+        path = f"{output_folder}/{image_id}_{component}.png"
+        postions.append({"image_id":image_id, "path":path, "component": component,
+                         "sx": sx, "ex": ex, "sy": sy, "ey": ey})
+        component += 1
+    logger.debug(f"Cropped {image_id=} with {img.size=} into {component=}")
+    return pd.DataFrame(postions), crops
+
+
 def get_cropped_images(
     image: Image.Image, image_id: str, output_folder: str, th_area: int = 1000
 ) -> Tuple[pd.DataFrame, List[Image.Image]]:
@@ -163,19 +186,29 @@ def tile_func(
     empty_threshold: float,
     output_folder: str,
     get_weights: bool = False,
+    center_crop:bool = False,
 ):
-    logger.debug(f"tiling {img_id} with {img.size} and {tile_size=}")
+    logger.debug(f"tiling {img_id=} with {img.size=} and {tile_size=}")
+    if center_crop:
+        x_len = (img.size[0] // tile_size)*tile_size
+        y_len = (img.size[1] // tile_size)*tile_size
+        x_offset = (img.size[0] - x_len) // 2
+        y_offset = (img.size[1] - y_len) // 2
+        
+        img = img.crop((x_offset, y_offset,
+                        x_offset + x_len, y_offset + y_len))
     tiles = tiler(img, tile_size, empty_threshold)
-    logger.debug(f"got {len(tiles)} tiles for {img_id=}")
+    logger.debug(f"got {len(tiles)=} tiles for {img_id=}")
     data = []
     os.makedirs(f"{output_folder}/{img_id}", exist_ok=True)
     for (i, j), tile in tiles.items():
         if get_weights:
             mask_data = get_mask_weights(tile)
+        weight = (tile.max(2) > 0).mean()
         tile = Image.fromarray(tile)
         path = f"{output_folder}/{img_id}/{component}_{i}_{j}.png"
         tile.save(path)
-        tile_data = {"image_id": img_id, "path": path, "component": component, "i": i, "j": j}
+        tile_data = {"image_id": img_id, "path": path, "component": component, "i": i, "j": j, "weight": weight}
         if get_weights:
             tile_data = {**tile_data, **mask_data}
         data.append(tile_data)

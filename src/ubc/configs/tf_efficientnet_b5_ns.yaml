@@ -3,12 +3,12 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048-256
+  - dataset: tile-0.25-2048
   - _self_
 
 model:
   entrypoint: TimmModel
-  backbone: tf_efficientnet_b4_ns
+  backbone: tf_efficientnet_b5.ns_jft_in1k
   pretrained: True
   num_classes: 5
   use_weights: True
@@ -25,11 +25,11 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 256
+img_size: 512
 fold: 0
-checkpoint_id: Null
+checkpoint_id: b10jsmwb
 monitor: val/global/bac
-batch_size: 64
+batch_size: 32
 num_workers: 6
 
 lr: 2e-5

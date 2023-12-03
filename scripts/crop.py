@@ -12,9 +12,9 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image, ImageFile
+from ubc import get_crop_positions, get_crops_from_data, upload_to_wandb
 
 import wandb
-from ubc import get_cropped_images, get_crops_from_data, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -26,7 +26,7 @@ def crop(row, output_folder):
     os.makedirs(image_output_folder, exist_ok=True)
     os.makedirs(mask_output_folder, exist_ok=True)
     image = Image.open(row['path'])
-    data, images =  get_cropped_images(image, row['image_id'], image_output_folder)
+    data, images =  get_crop_positions(image, row['image_id'], image_output_folder)
     for path, img in zip(data['path'], images):
         img.save(path)
     

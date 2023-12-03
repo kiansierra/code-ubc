@@ -15,7 +15,6 @@ from ubc import (
     MODEL_REGISTRY,
     PROJECT_NAME,
     AugmentationDataset,
-    TimmModel,
     get_valid_transforms,
     idx2label,
     label2idx,

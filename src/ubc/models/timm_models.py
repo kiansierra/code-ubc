@@ -5,7 +5,6 @@ import timm
 import torch
 import torchmetrics as tm
 from einops import rearrange
-
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -78,7 +77,11 @@ class BaseLightningModel(pl.LightningModule):
             ClassBalancedAccuracy(num_classes=model_config["num_classes"], average="macro"),
             EpochLoss(),
         )
-        self.loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(weights) if weights else None, reduction="none")
+        self.loss_fn = nn.CrossEntropyLoss(
+            weight=torch.tensor(weights) if weights else None,
+            reduction="none",
+            label_smoothing=model_config.get("label_smoothing", 0.0),
+        )
         self.train_metric_global = metrics.clone(prefix="train/global/")
         self.train_metric_wsi = metrics.clone(prefix="train/wsi/")
         self.train_metric_tma = metrics.clone(prefix="train/tma/")
@@ -91,6 +94,8 @@ class BaseLightningModel(pl.LightningModule):
         labels = batch["label"]
         output = self(images)
         loss = self.loss_fn(output["logits"], labels)
+        if "weight" in batch:
+            loss = loss * batch["weight"] / batch["weight"].mean()
         self.log("train/loss", loss.mean(), prog_bar=True)
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]

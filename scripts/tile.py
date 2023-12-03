@@ -22,14 +22,16 @@ Image.MAX_IMAGE_PIXELS = None
 
 
 
-def tile_wrapper(row:Dict[str, Any], tile_size:int, output_folder:str, empty_threshold:float):
+def tile_wrapper(row:Dict[str, Any], tile_size:int, output_folder:str, empty_threshold:float, center_crop:bool=False):
     image_output_folder = f"{output_folder}/images"
     mask_output_folder = f"{output_folder}/masks"
     img = Image.open(row['path'])
-    image_df = tile_func(img, row['image_id'], row['component'], tile_size, empty_threshold, image_output_folder)
+    image_df = tile_func(img, row['image_id'], row['component'], tile_size, empty_threshold,
+                         image_output_folder, center_crop=center_crop)
     if os.path.exists(row['mask_path']):
         mask = Image.open(row['mask_path'])
-        mask_df = tile_func(mask, row['image_id'], row['component'], tile_size, 0.0, mask_output_folder, get_weights=True)
+        mask_df = tile_func(mask, row['image_id'], row['component'], tile_size, 0.0,
+                            mask_output_folder, get_weights=True, center_crop=center_crop)
         mask_df.rename(columns={'path': 'mask_path'}, inplace=True)
         image_df = image_df.merge(mask_df, on=['image_id', 'component', 'i', 'j'], how='left')
     return image_df
@@ -46,8 +48,8 @@ def main(config: DictConfig) -> None:
     records = df.to_dict('records')
     output_folder = Path(config.output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
-    tile_save = partial(tile_wrapper, output_folder=output_folder,
-                         tile_size=config.tile_size, empty_threshold=config.empty_threshold)
+    tile_save = partial(tile_wrapper, output_folder=output_folder, tile_size=config.tile_size,
+                        empty_threshold=config.empty_threshold, center_crop=config.center_crop)
     if config.num_processes > 1:
         with mp.Pool(config.num_processes) as pool:
             outputs = pool.map(tile_save, records)

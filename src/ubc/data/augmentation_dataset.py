@@ -39,6 +39,8 @@ class AugmentationDataset(Dataset):
             output["label"] = label2idx[row["label"]]
         if "is_tma" in row:
             output["is_tma"] = int(row["is_tma"])
+        if "weight" in row:
+            output["weight"] = row["weight"]
         return output
 
 

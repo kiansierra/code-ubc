@@ -28,10 +28,10 @@ img_size: 256
 fold: 0
 checkpoint_id: Null
 monitor: val/global/bac
-batch_size: 2
+batch_size: 4
 num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 1
+max_epochs: 10
 accumulate_grad_batches: 16

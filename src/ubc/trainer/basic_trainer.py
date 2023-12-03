@@ -26,7 +26,6 @@ def train_epoch(
     running_acc = 0.0
     running_recall = 0.0
     for num, batch in bar:
-
         images = batch["image"].to(device)
         targets = batch["label"].to(device)
         optimizer.zero_grad()

@@ -3,6 +3,11 @@
 ## Future Work
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
+## 2023-12-01
+- [ ] Validation label metrics
+- [ ] Introduce other class
+- [ ] Mask aware dataset
+
 ## 2023-29-11
 - [x] Inference Script, takes in dataframe and checkpoint folder
 

@@ -14,7 +14,8 @@ from torch.utils.data import DataLoader
 
 import wandb
 
-from ..data import DATASET_REGISTRY, AugmentationDataset, get_train_transforms, get_valid_transforms, label2idx
+from ..data import (DATASET_REGISTRY, AugmentationDataset,
+                    get_train_transforms, get_valid_transforms, label2idx)
 from ..models import MODEL_REGISTRY
 from ..utils import PROJECT_NAME, set_seed, upload_to_wandb
 
@@ -66,7 +67,7 @@ def load_checkpoint(config: DictConfig, model: pl.LightningModule, wandb_logger:
 
 
 def train_pl_run(config: DictConfig) -> None:
-    # torch.set_float32_matmul_precision("medium")
+    torch.set_float32_matmul_precision("medium")
     pl.seed_everything(config.seed, workers=True)
     set_seed(config.seed)
     config_container = OmegaConf.to_container(config, resolve=True)

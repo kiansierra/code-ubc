@@ -11,6 +11,8 @@ model:
   backbone: tf_efficientnet_b0_ns
   pretrained: True
   num_classes: 5
+  label_smoothing: 0.05
+  use_weights: True
 
 augmentations:
   train:
@@ -33,5 +35,5 @@ num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 25
+max_epochs: 20
 accumulate_grad_batches: 1

@@ -5,4 +5,4 @@ output_name: train-resize-${scale}-${imgsize}.parquet
 column_name: thumbnail_path
 dataframe_path: Null
 artifact_name: train_folds.parquet
-num_processes: 6
+num_processes: 8

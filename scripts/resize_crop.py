@@ -13,19 +13,19 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
-from ubc import get_cropped_images, resize, upload_to_wandb
 
 import wandb
+from ubc import get_crop_positions, get_cropped_images, resize, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
 
 
 
-def resize_copy(row, scale:float, image_size:int=2048, output_folder:str=None):
+def resize_crop(row, scale:float, image_size:int=2048, output_folder:str=None):
     image = Image.open( row['path'])
     image = resize(image, scale, image_size)
-    data, images = get_cropped_images(image, row['image_id'], output_folder)
+    data, images = get_crop_positions(image, row['image_id'], output_folder)
     for path, img in zip(data['path'], images):
         img.save(path)
     logger.info(f"save done for {row['image_id']}")
@@ -44,7 +44,7 @@ def main(config: DictConfig) -> None:
     records = df.to_dict('records')
     output_folder = Path(config.output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
-    resize_copy_partial = partial(resize_copy, output_folder=config.output_folder,
+    resize_copy_partial = partial(resize_crop, output_folder=config.output_folder,
                                   image_size=config.imgsize, scale=config.scale)
     if config.num_processes > 1:
         with mp.Pool(config.num_processes) as pool:
