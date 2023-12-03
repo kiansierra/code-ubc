@@ -5,7 +5,6 @@ import timm
 import torch
 import torchmetrics as tm
 from einops import rearrange
-
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -95,6 +94,8 @@ class BaseLightningModel(pl.LightningModule):
         labels = batch["label"]
         output = self(images)
         loss = self.loss_fn(output["logits"], labels)
+        if "weight" in batch:
+            loss = loss * batch["weight"] / batch["weight"].mean()
         self.log("train/loss", loss.mean(), prog_bar=True)
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
