@@ -4,8 +4,8 @@
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
 ## 2023-12-04
-- [ ] Mixup
-- [ ] CutMix
+- [x] Mixup
+- [x] CutMix
 
 
 

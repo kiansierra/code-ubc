@@ -1,13 +1,19 @@
+from typing import Callable
+
 import albumentations as A
 import cv2
 from albumentations.pytorch import ToTensorV2
 from omegaconf import DictConfig
 
+from ..utils import Registry
+
 NORMALIZE_MEAN = [0.485, 0.456, 0.406]
 NORMALIZE_STD = [0.229, 0.224, 0.225]
 
-__all__ = ["get_train_transforms", "get_valid_transforms", "get_train_basic_transform"]
+__all__ = ["get_train_transforms", "get_valid_transforms", "get_train_basic_transform", "AUGMENTATIONS_REGISTRY"]
 
+AugmentationBuilderType = Callable[[DictConfig], A.Compose]
+AUGMENTATIONS_REGISTRY = Registry("AUGMENTATIONS", AugmentationBuilderType)
 
 def get_blurs():
     blurs = [A.Blur(), A.GaussianBlur(), A.MotionBlur(), A.MedianBlur()]
@@ -18,7 +24,7 @@ def get_dropouts():
     dropouts = [A.Cutout(num_holes=10, max_h_size=16, max_w_size=16), A.PixelDropout(dropout_prob=0.05)]
     return A.OneOf(dropouts, p=0.5)
 
-
+@AUGMENTATIONS_REGISTRY.register()
 def get_train_transforms(config: DictConfig) -> A.Compose:
     transforms = [
         A.Resize(config.img_size, config.img_size),
@@ -35,7 +41,7 @@ def get_train_transforms(config: DictConfig) -> A.Compose:
     transforms = [transform for transform in transforms if transform is not None]
     return A.Compose(transforms, p=1.0)
 
-
+@AUGMENTATIONS_REGISTRY.register()
 def get_train_basic_transform(config: DictConfig) -> A.Compose:
     return A.Compose(
         [
@@ -49,7 +55,7 @@ def get_train_basic_transform(config: DictConfig) -> A.Compose:
         p=1.0,
     )
 
-
+@AUGMENTATIONS_REGISTRY.register()
 def get_valid_transforms(config: DictConfig) -> A.Compose:
     return A.Compose(
         [
