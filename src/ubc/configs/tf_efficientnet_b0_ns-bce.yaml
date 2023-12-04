@@ -30,7 +30,7 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 512
 fold: 0
-checkpoint_id: 3kqnxlhm
+checkpoint_id: Null
 monitor: val/global/bac
 batch_size: 32
 num_workers: 6

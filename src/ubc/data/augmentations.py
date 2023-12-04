@@ -17,7 +17,7 @@ AugmentationBuilderType = Callable[[DictConfig], A.Compose]
 AUGMENTATIONS_REGISTRY = Registry("AUGMENTATIONS", AugmentationBuilderType)
 
 def build_augmentations(config: DictConfig) -> A.Compose:
-    return AUGMENTATIONS_REGISTRY.get(config.name)(config)
+    return AUGMENTATIONS_REGISTRY.get(config.get("name", "get_valid_transforms"))(config)
 
 def get_blurs():
     blurs = [A.Blur(), A.GaussianBlur(), A.MotionBlur(), A.MedianBlur()]
