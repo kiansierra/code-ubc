@@ -1,6 +1,6 @@
 imgsize: 2048
 scale: 0.25
-tile_size: 256
+tile_size: 1024
 output_folder: ../input/UBC-OCEAN-PROCESSED/tile-${scale}-${imgsize}-${tile_size}
 output_name: train-tile-${scale}-${imgsize}-${tile_size}.parquet
 dataframe_path: Null

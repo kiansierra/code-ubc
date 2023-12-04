@@ -3,7 +3,6 @@ artifact_name: train-tile-0.25-2048-512.parquet
 column_name: path
 fold: ${fold}
 seed: ${seed}
-balanced: True
+balanced: False
 remove_edges: False
-mask_weight: 1.0e-6
-center_crop: True
+weight: 0.01

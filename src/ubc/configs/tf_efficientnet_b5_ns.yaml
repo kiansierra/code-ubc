@@ -3,7 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048
+  - dataset: tile-0.25-2048-512
   - _self_
 
 model:
@@ -27,12 +27,12 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 512
 fold: 0
-checkpoint_id: b10jsmwb
+checkpoint_id: 8rat0o1f
 monitor: val/global/bac
 batch_size: 32
 num_workers: 6
 
 lr: 2e-5
 max_steps: Null
-max_epochs: 20
+max_epochs: 6
 accumulate_grad_batches: 1
