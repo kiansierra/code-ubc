@@ -10,17 +10,11 @@ from loguru import logger
 from omegaconf import OmegaConf
 from sklearn.metrics import balanced_accuracy_score
 from torch.utils.data import DataLoader
-from ubc import (
-    DATASET_REGISTRY,
-    MODEL_REGISTRY,
-    PROJECT_NAME,
-    AugmentationDataset,
-    get_valid_transforms,
-    idx2label,
-    label2idx,
-)
 
 import wandb
+from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, PROJECT_NAME,
+                 AugmentationDataset, get_valid_transforms, idx2label,
+                 label2idx)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
@@ -58,6 +52,7 @@ def validate(checkpoint_id: str) -> None:
     config.model.pretrained = False
     builder = MODEL_REGISTRY.get(config.model.entrypoint)
     model = builder.load_from_checkpoint(checkpoint_path, config=config, strict=False)
+    model = model.eval()
     trainer = pl.Trainer(devices=1)
     predictions = trainer.predict(model, valid_dataloader)
     predictions = {k: torch.cat([elem[k] for elem in predictions], dim=0) for k in predictions[0].keys()}
