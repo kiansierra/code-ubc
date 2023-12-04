@@ -14,8 +14,7 @@ from torch.utils.data import DataLoader
 
 import wandb
 
-from ..data import (DATASET_REGISTRY, AugmentationDataset,
-                    get_train_transforms, get_valid_transforms, label2idx)
+from ..data import DATASET_REGISTRY, AugmentationDataset, get_train_transforms, get_valid_transforms, label2idx
 from ..models import MODEL_REGISTRY
 from ..utils import PROJECT_NAME, set_seed, upload_to_wandb
 
@@ -54,9 +53,7 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
 def load_checkpoint(config: DictConfig, model: pl.LightningModule, wandb_logger: WandbLogger) -> None:
     api = wandb.Api()
     run = api.run(f"{PROJECT_NAME}/{config.checkpoint_id}")
-    ckpt_artifact_name = [
-        artifact.name for artifact in run.logged_artifacts() if artifact.name.startswith(config.model.backbone)
-    ][0]
+    ckpt_artifact_name = [artifact.name for artifact in run.logged_artifacts() if artifact.type =="model"][0]
     ckpt_artifact = wandb_logger.experiment.use_artifact(ckpt_artifact_name, type="model")
     ckpt_artifact_dir = ckpt_artifact.download()
     checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
