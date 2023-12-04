@@ -13,13 +13,22 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.utils.data import DataLoader
 
 import wandb
+from wandb import wandb_sdk
 
-from ..data import DATASET_REGISTRY, AugmentationDataset, get_train_transforms, get_valid_transforms, label2idx
+from ..data import (
+    DATASET_REGISTRY,
+    AugmentationDataset,
+    build_augmentations,
+    get_train_transforms,
+    get_valid_transforms,
+    label2idx,
+)
 from ..models import MODEL_REGISTRY
 from ..utils import PROJECT_NAME, set_seed, upload_to_wandb
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
+__all__ = ["train_pl_run", "load_state_dict", "get_checkpoint_folder"]
 
 @rank_zero_only
 def update_output_dir(config: DictConfig, logger) -> DictConfig:
@@ -49,18 +58,21 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
     class_weights = inverse_class_counts / inverse_class_counts.sum()
     return class_weights.tolist()
 
-
-def load_checkpoint(config: DictConfig, model: pl.LightningModule, wandb_logger: WandbLogger) -> None:
+def get_checkpoint_folder(checkpoint_id:str, run: wandb_sdk.wandb_run.Run) -> str:
     api = wandb.Api()
-    run = api.run(f"{PROJECT_NAME}/{config.checkpoint_id}")
-    ckpt_artifact_name = [artifact.name for artifact in run.logged_artifacts() if artifact.type =="model"][0]
-    ckpt_artifact = wandb_logger.experiment.use_artifact(ckpt_artifact_name, type="model")
+    api_run = api.run(f"{PROJECT_NAME}/{checkpoint_id}")
+    ckpt_artifact_name = [artifact.name for artifact in api_run.logged_artifacts() if artifact.type =="model"][0]
+    ckpt_artifact = run.use_artifact(ckpt_artifact_name, type="model")
     ckpt_artifact_dir = ckpt_artifact.download()
-    checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
+    return ckpt_artifact_dir
+
+def load_state_dict(folder:str, model: pl.LightningModule, variant:str="best") -> None:
+    checkpoint_path = f"{folder}/{variant}.ckpt"
     state_dict = torch.load(checkpoint_path)["state_dict"]
     state_dict.pop("loss_fn.weight", None)
     model.load_state_dict(state_dict, strict=False)
-    logger.info(f"Loaded checkpoint: {config.checkpoint_id}")
+    logger.info(f"Loaded checkpoint: {folder}")
+    return model
 
 
 def train_pl_run(config: DictConfig) -> None:
@@ -73,6 +85,7 @@ def train_pl_run(config: DictConfig) -> None:
         config.model.backbone,
         config.model.entrypoint,
         config.dataset.artifact_name,
+        config.augmentations.train.name,
         f"img_size-{config.img_size}",
     ]
     wandb_logger = WandbLogger(
@@ -85,8 +98,8 @@ def train_pl_run(config: DictConfig) -> None:
     )
     dataset_builder = DATASET_REGISTRY.get(config.dataset.loader)
     train_df, valid_df = dataset_builder(wandb_logger.experiment, config.dataset)
-    train_ds = AugmentationDataset(train_df, augmentation=get_train_transforms(config))
-    valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
+    train_ds = AugmentationDataset(train_df, augmentation=build_augmentations(config.augmentations.train))
+    valid_ds = AugmentationDataset(valid_df, augmentation=build_augmentations(config.augmentations.valid))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     weights = get_class_weights(train_df)
@@ -95,7 +108,8 @@ def train_pl_run(config: DictConfig) -> None:
     config.max_steps = config.trainer.max_epochs * len(train_dataloader) // config.trainer.accumulate_grad_batches
 
     if config.get("checkpoint_id", False):
-        load_checkpoint(config, model, wandb_logger)
+        ckpt_folder = get_checkpoint_folder(config.checkpoint_id, wandb_logger.experiment)
+        model = load_state_dict(ckpt_folder, model)
         # logger.watch(model, log="gradients", log_freq=10)
     update_output_dir(config, wandb_logger)
     save_config(config)

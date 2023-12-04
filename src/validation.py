@@ -13,8 +13,9 @@ from torch.utils.data import DataLoader
 
 import wandb
 from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, PROJECT_NAME,
-                 AugmentationDataset, get_valid_transforms, idx2label,
-                 label2idx)
+                 AugmentationDataset, build_augmentations,
+                 get_checkpoint_folder, get_valid_transforms, idx2label,
+                 label2idx, load_state_dict)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
@@ -37,20 +38,16 @@ def aggregate_predictions(predictions: Dict[str, torch.Tensor]) -> pd.DataFrame:
 
 def validate(checkpoint_id: str) -> None:
     torch.set_float32_matmul_precision("medium")
-    api = wandb.Api()
-    ckpt_run = api.run(f"{PROJECT_NAME}/{checkpoint_id}")
     run = wandb.init(job_type="validate", project=PROJECT_NAME)
-    ckpt_artifact_name = [artifact.name for artifact in ckpt_run.logged_artifacts() if "run" not in artifact.name][0]
-    ckpt_artifact = run.use_artifact(ckpt_artifact_name, type="model")
-    ckpt_artifact_dir = ckpt_artifact.download()
+    ckpt_artifact_dir = get_checkpoint_folder(checkpoint_id, run)
     config = OmegaConf.load(os.path.join(ckpt_artifact_dir, "config.yaml"))
-    checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
     dataset_builder = DATASET_REGISTRY.get(config.dataset.loader)
     _, valid_df = dataset_builder(run, config.dataset)
-    valid_ds = AugmentationDataset(valid_df, augmentation=get_valid_transforms(config))
+    valid_ds = AugmentationDataset(valid_df, augmentation=build_augmentations(config.augmentations.valid))
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
     builder = MODEL_REGISTRY.get(config.model.entrypoint)
+    checkpoint_path = f"{ckpt_artifact_dir}/best.ckpt"
     model = builder.load_from_checkpoint(checkpoint_path, config=config, strict=False)
     model = model.eval()
     trainer = pl.Trainer(devices=1)
