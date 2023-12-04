@@ -14,9 +14,9 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
+from ubc import PROJECT_NAME, resize, upload_to_wandb
 
 import wandb
-from ubc import resize, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -47,7 +47,7 @@ def resize_copy(row, output_folder:str,  scale:float, image_size:int=2048):
 def main(config: DictConfig):
     if config.artifact_name:
         config_container = OmegaConf.to_container(config, resolve=True)
-        run = wandb.init(job_type='resize', config=config_container)
+        run = wandb.init(job_type='resize', config=config_container, project=PROJECT_NAME)
         artifact = run.use_artifact(f"{config.artifact_name}:latest", type='dataset')
         artifact_dir = artifact.download()
         config.dataframe_path = f"{artifact_dir}/{config.artifact_name}"

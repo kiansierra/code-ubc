@@ -13,9 +13,9 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image
+from ubc import PROJECT_NAME, tile_func, upload_to_wandb
 
 import wandb
-from ubc import tile_func, upload_to_wandb
 
 warnings.filterwarnings("ignore")
 Image.MAX_IMAGE_PIXELS = None
@@ -40,7 +40,7 @@ def tile_wrapper(row:Dict[str, Any], tile_size:int, output_folder:str, empty_thr
 def main(config: DictConfig) -> None:
     if config.artifact_name:
         config_container = OmegaConf.to_container(config, resolve=True)
-        run = wandb.init(job_type='tile', config=config_container)
+        run = wandb.init(job_type='tile', config=config_container, project=PROJECT_NAME)
         artifact = run.use_artifact(f"{config.artifact_name}:latest", type='dataset')
         artifact_dir = artifact.download()
         config.dataframe_path = f"{artifact_dir}/{config.artifact_name}"
