@@ -1,0 +1,39 @@
+defaults:
+  - trainer: trainer_pl
+  - optimizer: adam
+  - scheduler: cosine_annealing
+  - dataloader: dataloader
+  - dataset: tile-0.25-2048-512
+  - _self_
+
+model:
+  entrypoint: TimmModelBCE
+  backbone: tf_efficientnet_b0_ns
+  pretrained: True
+  num_classes: 5
+  label_smoothing: 0.05
+  use_weights: True
+
+augmentations:
+  train:
+    img_size: ${img_size}
+    flip:  True
+    blur: True
+    dropout: True
+  valid:
+    img_size: ${img_size}
+
+seed: 42
+name: ${model.backbone}
+output_dir:  ../checkpoints/${name}
+img_size: 512
+fold: 0
+checkpoint_id: 3kqnxlhm
+monitor: val/global/bac
+batch_size: 32
+num_workers: 6
+
+lr: 2e-5
+max_steps: 10000
+max_epochs: 20
+accumulate_grad_batches: 1

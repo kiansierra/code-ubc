@@ -19,7 +19,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnet_b5_ns"
+                "--config-name", "tf_efficientnet_b0_ns-bce"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"
@@ -62,7 +62,7 @@
             "program": "src/validation.py",
             "console": "integratedTerminal",
             "args": [
-                "--checkpoint-id", "8roij34m"
+                "--checkpoint-id", "jsme4tt1"
             ],
             "justMyCode": false
         },
