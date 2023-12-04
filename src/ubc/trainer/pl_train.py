@@ -19,8 +19,6 @@ from ..data import (
     DATASET_REGISTRY,
     AugmentationDataset,
     build_augmentations,
-    get_train_transforms,
-    get_valid_transforms,
     label2idx,
 )
 from ..models import MODEL_REGISTRY
@@ -29,6 +27,7 @@ from ..utils import PROJECT_NAME, set_seed, upload_to_wandb
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 
 __all__ = ["train_pl_run", "load_state_dict", "get_checkpoint_folder"]
+
 
 @rank_zero_only
 def update_output_dir(config: DictConfig, logger) -> DictConfig:
@@ -58,15 +57,17 @@ def get_class_weights(df: pd.DataFrame) -> List[int]:
     class_weights = inverse_class_counts / inverse_class_counts.sum()
     return class_weights.tolist()
 
-def get_checkpoint_folder(checkpoint_id:str, run: wandb_sdk.wandb_run.Run) -> str:
+
+def get_checkpoint_folder(checkpoint_id: str, run: wandb_sdk.wandb_run.Run) -> str:
     api = wandb.Api()
     api_run = api.run(f"{PROJECT_NAME}/{checkpoint_id}")
-    ckpt_artifact_name = [artifact.name for artifact in api_run.logged_artifacts() if artifact.type =="model"][0]
+    ckpt_artifact_name = [artifact.name for artifact in api_run.logged_artifacts() if artifact.type == "model"][0]
     ckpt_artifact = run.use_artifact(ckpt_artifact_name, type="model")
     ckpt_artifact_dir = ckpt_artifact.download()
     return ckpt_artifact_dir
 
-def load_state_dict(folder:str, model: pl.LightningModule, variant:str="best") -> None:
+
+def load_state_dict(folder: str, model: pl.LightningModule, variant: str = "best") -> None:
     checkpoint_path = f"{folder}/{variant}.ckpt"
     state_dict = torch.load(checkpoint_path)["state_dict"]
     state_dict.pop("loss_fn.weight", None)

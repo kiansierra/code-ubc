@@ -3,17 +3,18 @@ from typing import Dict, List, Tuple
 import torch
 import torch.nn as nn
 
-__all__ = ['Mixup', 'CutMix']
+__all__ = ["Mixup", "CutMix"]
+
 
 class Mixup(nn.Module):
-    def __init__(self, keys:List[str], alpha:float=0.4, prob:float=0.5):
+    def __init__(self, keys: List[str], alpha: float = 0.4, prob: float = 0.5):
         super().__init__()
         self.alpha = alpha
         self.prob = prob
         self.keys = keys
-        self.main_key = 'image'
-        
-    def forward(self, batch:Dict[str, torch.Tensor], skip:bool=False) -> Tuple[Dict[str, torch.Tensor], bool]:
+        self.main_key = "image"
+
+    def forward(self, batch: Dict[str, torch.Tensor], skip: bool = False) -> Tuple[Dict[str, torch.Tensor], bool]:
         if skip:
             return batch, False
         if torch.rand(1) > self.prob:
@@ -22,21 +23,21 @@ class Mixup(nn.Module):
         lam = max(lam, 1 - lam)
         bs = batch[self.main_key].size(0)
         index = torch.randperm(bs).to(batch[self.main_key].device)
-    
+
         for key in self.keys:
             batch[key] = lam * batch[key] + (1 - lam) * batch[key][index]
         return batch, True
 
+
 class CutMix(nn.Module):
-    def __init__(self, aux_keys:List[str], image_key:str='image', beta:float=1.0, prob:float=0.5):
+    def __init__(self, aux_keys: List[str], image_key: str = "image", beta: float = 1.0, prob: float = 0.5):
         super(CutMix, self).__init__()
         self.beta = beta
         self.prob = prob
         self.image_key = image_key
         self.aux_keys = aux_keys
-        
 
-    def forward(self, batch:Dict[str, torch.Tensor], skip:bool=False) -> Tuple[Dict[str, torch.Tensor], bool]:
+    def forward(self, batch: Dict[str, torch.Tensor], skip: bool = False) -> Tuple[Dict[str, torch.Tensor], bool]:
         if skip:
             return batch, False
         if torch.rand(1) > self.prob:
@@ -50,14 +51,14 @@ class CutMix(nn.Module):
         for key in self.aux_keys:
             target_a = batch[key]
             target_b = batch[key][rand_index]
-            batch[key] = target_a * lam + target_b * (1. - lam)
+            batch[key] = target_a * lam + target_b * (1.0 - lam)
         return batch, True
 
     @staticmethod
     def rand_bbox(size, lam, device):
         W = size[2]
         H = size[3]
-        cut_rat = torch.sqrt(torch.Tensor([1. - lam])).to(device)
+        cut_rat = torch.sqrt(torch.Tensor([1.0 - lam])).to(device)
         cut_w = (W * cut_rat).type(torch.long)
         cut_h = (H * cut_rat).type(torch.long)
         cx = torch.randint(0, W, (1,)).to(device)

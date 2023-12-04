@@ -12,10 +12,16 @@ from sklearn.metrics import balanced_accuracy_score
 from torch.utils.data import DataLoader
 
 import wandb
-from ubc import (DATASET_REGISTRY, MODEL_REGISTRY, PROJECT_NAME,
-                 AugmentationDataset, build_augmentations,
-                 get_checkpoint_folder, get_valid_transforms, idx2label,
-                 label2idx, load_state_dict)
+from ubc import (
+    DATASET_REGISTRY,
+    MODEL_REGISTRY,
+    PROJECT_NAME,
+    AugmentationDataset,
+    build_augmentations,
+    get_checkpoint_folder,
+    idx2label,
+    label2idx,
+)
 
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")

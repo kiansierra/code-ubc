@@ -230,8 +230,10 @@ class TimmBasicModel(BaseLightningModel):
         model_config = config["model"]
 
         self.backbone = timm.create_model(
-            model_config["backbone"], pretrained=model_config["pretrained"],
-            num_classes=model_config["num_classes"], global_pool=model_config.get('global_pool', 'avg')
+            model_config["backbone"],
+            pretrained=model_config["pretrained"],
+            num_classes=model_config["num_classes"],
+            global_pool=model_config.get("global_pool", "avg"),
         )
         self.softmax = nn.Softmax(dim=1)
 
@@ -240,7 +242,8 @@ class TimmBasicModel(BaseLightningModel):
         logits = self.backbone.forward_head(features)
         output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
         return output
-    
+
+
 @MODEL_REGISTRY.register()
 class TimmModelBCE(BaseLightningModel):
     def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
@@ -248,40 +251,38 @@ class TimmModelBCE(BaseLightningModel):
         model_config = config["model"]
 
         self.backbone = timm.create_model(
-            model_config["backbone"], pretrained=model_config["pretrained"],
-            num_classes=model_config["num_classes"], global_pool=model_config.get('global_pool', 'avg')
+            model_config["backbone"],
+            pretrained=model_config["pretrained"],
+            num_classes=model_config["num_classes"],
+            global_pool=model_config.get("global_pool", "avg"),
         )
         self.softmax = nn.Softmax(dim=1)
         self.cutmix = CutMix(aux_keys=["label", "weight"], image_key="image", beta=1.0, prob=0.5)
         self.mixup = Mixup(keys=["image", "label", "weight"], alpha=1.0, prob=0.5)
-        self.loss_fn = nn.BCEWithLogitsLoss(
-            weight=torch.tensor(weights) if weights else None,
-            reduction="none"
-        )
+        self.loss_fn = nn.BCEWithLogitsLoss(weight=torch.tensor(weights) if weights else None, reduction="none")
         self.num_classes = model_config["num_classes"]
-        
 
     def forward(self, images):
         features = self.backbone.forward_features(images)
         logits = self.backbone.forward_head(features)
         output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
         return output
-    
+
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        batch['label'] = F.one_hot(batch['label'], self.num_classes).float()
+        batch["label"] = F.one_hot(batch["label"], self.num_classes).float()
         batch, skip = self.mixup(batch)
         batch, skip = self.cutmix(batch, skip)
         output = self(batch["image"])
-        loss = self.loss_fn(output["logits"], batch['label'])
+        loss = self.loss_fn(output["logits"], batch["label"])
         if "weight" in batch:
             loss = loss * batch["weight"].unsqueeze(-1) / batch["weight"].mean()
         self.log("train/loss", loss.mean(), prog_bar=True)
         return loss.mean()
-    
+
     def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
         images = batch["image"]
-        label = batch['label']
-        batch['label'] = F.one_hot(batch['label'], self.num_classes).float()
+        label = batch["label"]
+        batch["label"] = F.one_hot(batch["label"], self.num_classes).float()
         labels = batch["label"]
         output = self(images)
         loss = self.loss_fn(output["logits"], labels)
@@ -299,8 +300,8 @@ class TimmModelBCE(BaseLightningModel):
         if batch_idx == 0:
             columns, data = create_table(batch["image_id"], images, label, output["probs"])
             self.trainer.logger.log_table("images", columns=columns, data=data)
-        return 
-    
+        return
+
 
 @MODEL_REGISTRY.register()
 class TileModel(BaseLightningModel):

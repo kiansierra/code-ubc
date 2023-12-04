@@ -4,49 +4,23 @@ import random
 import cv2
 from albumentations.augmentations.crops import functional as F
 from albumentations.augmentations.geometric import functional as FGeometric
-from albumentations.core.transforms_interface import DualTransform, ImageOnlyTransform
+from albumentations.core.transforms_interface import DualTransform
 
 
 class _CustomBaseRandomSizedCropNoResize(DualTransform):
     # Base class for RandomSizedCrop and RandomResizedCrop
 
     def __init__(self, always_apply=False, p=1.0):
-        super(_CustomBaseRandomSizedCropNoResize,
-              self).__init__(always_apply, p)
+        super(_CustomBaseRandomSizedCropNoResize, self).__init__(always_apply, p)
 
-    def apply(self,
-              img,
-              crop_height=0,
-              crop_width=0,
-              h_start=0,
-              w_start=0,
-              interpolation=cv2.INTER_LINEAR,
-              **params):
+    def apply(self, img, crop_height=0, crop_width=0, h_start=0, w_start=0, interpolation=cv2.INTER_LINEAR, **params):
         return F.random_crop(img, crop_height, crop_width, h_start, w_start)
 
-    def apply_to_bbox(self,
-                      bbox,
-                      crop_height=0,
-                      crop_width=0,
-                      h_start=0,
-                      w_start=0,
-                      rows=0,
-                      cols=0,
-                      **params):
-        return F.bbox_random_crop(bbox, crop_height, crop_width, h_start,
-                                  w_start, rows, cols)
+    def apply_to_bbox(self, bbox, crop_height=0, crop_width=0, h_start=0, w_start=0, rows=0, cols=0, **params):
+        return F.bbox_random_crop(bbox, crop_height, crop_width, h_start, w_start, rows, cols)
 
-    def apply_to_keypoint(self,
-                          keypoint,
-                          crop_height=0,
-                          crop_width=0,
-                          h_start=0,
-                          w_start=0,
-                          rows=0,
-                          cols=0,
-                          **params):
-        keypoint = F.keypoint_random_crop(keypoint, crop_height, crop_width,
-                                          h_start, w_start, rows, cols)
+    def apply_to_keypoint(self, keypoint, crop_height=0, crop_width=0, h_start=0, w_start=0, rows=0, cols=0, **params):
+        keypoint = F.keypoint_random_crop(keypoint, crop_height, crop_width, h_start, w_start, rows, cols)
         scale_x = self.width / crop_width
         scale_y = self.height / crop_height
         keypoint = FGeometric.keypoint_scale(keypoint, scale_x, scale_y)
@@ -72,15 +46,13 @@ class CustomRandomSizedCropNoResize(_CustomBaseRandomSizedCropNoResize):
     """
 
     def __init__(
-            self,
-            scale=(0.08, 1.0),
-            ratio=(0.75, 1.3333333333333333),
-            always_apply=False,
-            p=1.0,
+        self,
+        scale=(0.08, 1.0),
+        ratio=(0.75, 1.3333333333333333),
+        always_apply=False,
+        p=1.0,
     ):
-
-        super(CustomRandomSizedCropNoResize,
-              self).__init__(always_apply=always_apply, p=p)
+        super(CustomRandomSizedCropNoResize, self).__init__(always_apply=always_apply, p=p)
         self.scale = scale
         self.ratio = ratio
 
@@ -93,10 +65,8 @@ class CustomRandomSizedCropNoResize(_CustomBaseRandomSizedCropNoResize):
             log_ratio = (math.log(self.ratio[0]), math.log(self.ratio[1]))
             aspect_ratio = math.exp(random.uniform(*log_ratio))
 
-            w = int(round(math.sqrt(target_area *
-                                    aspect_ratio)))  # skipcq: PTC-W0028
-            h = int(round(math.sqrt(target_area /
-                                    aspect_ratio)))  # skipcq: PTC-W0028
+            w = int(round(math.sqrt(target_area * aspect_ratio)))  # skipcq: PTC-W0028
+            h = int(round(math.sqrt(target_area / aspect_ratio)))  # skipcq: PTC-W0028
 
             if 0 < w <= img.shape[1] and 0 < h <= img.shape[0]:
                 i = random.randint(0, img.shape[0] - h)

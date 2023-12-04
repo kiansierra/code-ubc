@@ -10,14 +10,16 @@ from PIL import Image
 from ..data.constants import label2idxmask
 
 
-def get_crop_positions(img:Image.Image, image_id:int, output_folder:str, min_pct:float=0.02) -> Tuple[pd.DataFrame, List[Image.Image]]:
+def get_crop_positions(
+    img: Image.Image, image_id: int, output_folder: str, min_pct: float = 0.02
+) -> Tuple[pd.DataFrame, List[Image.Image]]:
     mask = np.max(np.array(img) > 0, axis=-1).astype(np.uint8)
     retval, labels = cv2.connectedComponents(mask)
     postions = []
     crops = []
     component = 0
     for i in range(1, retval):
-        valid_pixels = (labels == i) * mask ==1
+        valid_pixels = (labels == i) * mask == 1
         img_pct = valid_pixels.sum() / np.prod(mask.shape)
         if img_pct < min_pct:
             continue
@@ -26,8 +28,9 @@ def get_crop_positions(img:Image.Image, image_id:int, output_folder:str, min_pct
         sy, ey = y.min() / img.size[1], y.max() / img.size[1]
         sx, ex = x.min() / img.size[0], x.max() / img.size[0]
         path = f"{output_folder}/{image_id}_{component}.png"
-        postions.append({"image_id":image_id, "path":path, "component": component,
-                         "sx": sx, "ex": ex, "sy": sy, "ey": ey})
+        postions.append(
+            {"image_id": image_id, "path": path, "component": component, "sx": sx, "ex": ex, "sy": sy, "ey": ey}
+        )
         component += 1
     logger.debug(f"Cropped {image_id=} with {img.size=} into {component=}")
     return pd.DataFrame(postions), crops
@@ -186,17 +189,16 @@ def tile_func(
     empty_threshold: float,
     output_folder: str,
     get_weights: bool = False,
-    center_crop:bool = False,
+    center_crop: bool = False,
 ):
     logger.debug(f"tiling {img_id=} with {img.size=} and {tile_size=}")
     if center_crop:
-        x_len = (img.size[0] // tile_size)*tile_size
-        y_len = (img.size[1] // tile_size)*tile_size
+        x_len = (img.size[0] // tile_size) * tile_size
+        y_len = (img.size[1] // tile_size) * tile_size
         x_offset = (img.size[0] - x_len) // 2
         y_offset = (img.size[1] - y_len) // 2
-        
-        img = img.crop((x_offset, y_offset,
-                        x_offset + x_len, y_offset + y_len))
+
+        img = img.crop((x_offset, y_offset, x_offset + x_len, y_offset + y_len))
     tiles = tiler(img, tile_size, empty_threshold)
     logger.debug(f"got {len(tiles)=} tiles for {img_id=}")
     data = []
