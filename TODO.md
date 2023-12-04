@@ -3,6 +3,12 @@
 ## Future Work
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
+## 2023-12-04
+- [ ] Mixup
+- [ ] CutMix
+
+
+
 ## 2023-12-01
 - [ ] Validation label metrics
 - [ ] Introduce other class

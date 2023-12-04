@@ -12,7 +12,7 @@ import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from PIL import Image, ImageFile
-from ubc import get_crop_positions, get_crops_from_data, upload_to_wandb
+from ubc import PROJECT_NAME, get_crop_positions, get_crops_from_data, upload_to_wandb
 
 import wandb
 
@@ -47,7 +47,7 @@ def main(config: DictConfig) -> None:
     if config.artifact_name:
         config_container = OmegaConf.to_container(config, resolve=True)
         run = wandb.init(job_type='crop', config=config_container)
-        artifact = run.use_artifact(f"{config.artifact_name}:latest", type='dataset')
+        artifact = run.use_artifact(f"{config.artifact_name}:latest", type='dataset', project_name=PROJECT_NAME)
         artifact_dir = artifact.download()
         config.dataframe_path = f"{artifact_dir}/{config.artifact_name}"
     df = pd.read_parquet(config.dataframe_path)

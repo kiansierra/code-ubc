@@ -1,5 +1,5 @@
 loader: load_tile
-artifact_name: train-tile-0.25-2048-256.parquet
+artifact_name: train-tile-0.25-2048-1024.parquet
 column_name: path
 fold: ${fold}
 seed: ${seed}
