@@ -8,7 +8,6 @@ import pytorch_lightning as pl
 import torch
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
-
 from ubc import (
     MODEL_REGISTRY,
     AugmentationDataset,
@@ -57,6 +56,7 @@ def inference() -> None:
     dataloader = DataLoader(ds, **config.dataloader.val_dataloader)
     builder = MODEL_REGISTRY.get(config.model.entrypoint)
     model = builder.load_from_checkpoint(checkpoint_path, config=config, strict=False)
+    model = model.eval()
     trainer = pl.Trainer(devices=1)
     predictions = trainer.predict(model, dataloader)
     predictions = {k: torch.cat([elem[k] for elem in predictions], dim=0) for k in predictions[0].keys()}
