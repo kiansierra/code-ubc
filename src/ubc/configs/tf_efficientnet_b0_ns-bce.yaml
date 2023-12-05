@@ -16,11 +16,13 @@ model:
 
 augmentations:
   train:
+    name: get_train_transforms
     img_size: ${img_size}
     flip:  True
     blur: True
     dropout: True
   valid:
+    name: get_valid_transforms
     img_size: ${img_size}
 
 seed: 42
@@ -28,7 +30,7 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 512
 fold: 0
-checkpoint_id: 3kqnxlhm
+checkpoint_id: Null
 monitor: val/global/bac
 batch_size: 32
 num_workers: 6

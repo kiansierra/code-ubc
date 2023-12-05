@@ -6,7 +6,6 @@ from ubc import train_pl_run
 
 @hydra.main(config_path="ubc/configs", config_name="tf_efficientnet_b4_ns", version_base=None)
 def train(config: DictConfig) -> None:
-    # torch.set_float32_matmul_precision("medium")
     train_pl_run(config)
 
 

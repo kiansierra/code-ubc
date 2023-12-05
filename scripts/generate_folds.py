@@ -1,18 +1,16 @@
 from pathlib import Path
 
 import pandas as pd
+import wandb
 from dotenv import load_dotenv
 from sklearn.model_selection import StratifiedKFold
 
-import wandb
 from ubc import upload_to_wandb
 
 load_dotenv()
 ROOT_DIR = Path("../input/UBC-OCEAN/")
 PROCESSED_DIR = Path("../input/UBC-OCEAN-PROCESSED/")
 MASK_FOLDER = Path("../input/ubc-ovarian-cancer-competition-supplemental-masks")
-
-
 
 def get_thumbnail(row):
     if row["is_tma"]:
@@ -28,7 +26,6 @@ def get_mask(row):
         return str(mask_path)
     else:
         return ''
-
 
 def generate_folds() -> None:
     train_df = pd.read_csv(ROOT_DIR / 'train.csv')
