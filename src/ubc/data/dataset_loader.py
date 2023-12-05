@@ -32,7 +32,7 @@ def load_thumbnails(run: wandb_sdk.wandb_run.Run, config: DictConfig):
     df["path"] = df[config.column_name]
     if config.get("only_tma", False):
         df = df.query("is_tma")
-    else:
+    if config.get("only_thumbnail", False):
         df = df.query("thumbnail_path !=  image_path")
     train_df = df.query(f"fold != {config.fold}").reset_index(drop=True)
     val_df = df.query(f"fold == {config.fold}").reset_index(drop=True)

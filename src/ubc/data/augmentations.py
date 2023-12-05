@@ -158,6 +158,8 @@ def get_train_rsna_transform(config: DictConfig) -> A.Compose:
                 ],
                 p=0.5,
             ),
+            # Random Crop
+            A.RandomCrop(config["img_size"], config["img_size"]),
             # random erase
             A.CoarseDropout(
                 max_holes=6,
