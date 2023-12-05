@@ -4,4 +4,3 @@ column_name: thumbnail_path
 fold: ${fold}
 seed: ${seed}
 balanced: True
-exclude_fullsize: False
