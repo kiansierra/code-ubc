@@ -1,0 +1,6 @@
+loader: load_tile_model
+artifact_name: train-tile-0.25-2048-256.parquet
+column_name: path
+fold: ${fold}
+seed: ${seed}
+tile_size: 256

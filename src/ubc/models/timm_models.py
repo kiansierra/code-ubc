@@ -5,7 +5,6 @@ import timm
 import torch
 import torchmetrics as tm
 from einops import rearrange
-
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -308,7 +307,7 @@ class TileModel(BaseLightningModel):
     def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
         super().__init__(config, weights=weights)
         model_config = config["model"]
-        num_tiles = 8
+        num_tiles = 16
         self.example_input_array = {
             "images": torch.zeros((1, num_tiles, 3, config["img_size"], config["img_size"])),
             "x_pos": torch.zeros((1, num_tiles)).long(),
@@ -319,8 +318,8 @@ class TileModel(BaseLightningModel):
         self.backbone.classifier = nn.Identity()
         self.backbone.global_pool = nn.Identity()
         self.pooling = GeM()
-        self.x_embed = nn.Embedding(64, self.backbone.num_features)
-        self.y_embed = nn.Embedding(64, self.backbone.num_features)
+        self.x_embed = nn.Embedding(model_config['num_tiles'], self.backbone.num_features)
+        self.y_embed = nn.Embedding(model_config['num_tiles'], self.backbone.num_features)
         self.layers = nn.ModuleList(
             [
                 nn.TransformerEncoderLayer(self.backbone.num_features, model_config["num_heads"], batch_first=True)
@@ -330,6 +329,11 @@ class TileModel(BaseLightningModel):
 
         self.head = nn.Linear(self.backbone.num_features, model_config["num_classes"])
         self.softmax = nn.Softmax(dim=1)
+        # self.freeze_backbone()
+        
+    def freeze_backbone(self):
+        for param in self.backbone.parameters():
+            param.requires_grad = False
 
     def get_features(self, x: torch.Tensor) -> torch.Tensor:
         bs = x.shape[0]

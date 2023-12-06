@@ -3,7 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048-256
+  - dataset: tile-0.25-2048-256-model
   - _self_
 
 model:
@@ -11,8 +11,11 @@ model:
   backbone: tf_efficientnet_b0_ns
   pretrained: True
   num_classes: 5
-  num_heads: 8
-  num_layers: 4
+  num_heads: 4
+  num_layers: 2
+  num_tiles: 6
+
+dataset_entrypoint: TileDataset
 
 augmentations:
   train:
@@ -28,14 +31,14 @@ augmentations:
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 256
 fold: 0
 checkpoint_id: 3kqnxlhm
 monitor: val/global/bac
-batch_size: 2
-num_workers: 6
+batch_size: 4
+num_workers: 8
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 25
-accumulate_grad_batches: 1
+max_epochs: 4
+accumulate_grad_batches: 16
