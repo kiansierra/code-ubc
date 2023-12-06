@@ -7,9 +7,13 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
+from ..utils import Registry
 from .constants import label2idx
 
+DATASETS = Registry("datasets", Dataset)
 
+
+@DATASETS.register()
 class AugmentationDataset(Dataset):
     """
     Dataset class for loading images and labels.
@@ -43,7 +47,7 @@ class AugmentationDataset(Dataset):
             output["weight"] = row["weight"]
         return output
 
-
+@DATASETS.register()
 class TileDataset(Dataset):
     """
     Dataset class for loading images as tiles and labels.
@@ -52,29 +56,35 @@ class TileDataset(Dataset):
 
     def __init__(self, dataframe: pd.DataFrame, augmentation: Optional[A.Compose] = None) -> None:
         super().__init__()
-        self.groups = dataframe.groupby("image_id")
-        self.image_ids = list(self.groups.groups.keys())
-        self.num_images = 8
+        self.dataframe = dataframe
+        self.num_tiles = 6
+        self.indexes = dataframe.query(f"i < max_i - {self.num_tiles} and j < max_j - {self.num_tiles}")[['image_id', 'component', 'i', 'j']].reset_index(drop=True)
+        self.num_images = self.num_tiles ** 2
         self.tile_size = 512
         if augmentation:
             self.augmentation = A.Compose(
                 augmentation.transforms,
                 additional_targets={f"image_{num}": "image" for num in range(self.num_images - 1)},
             )
+        else:
+            self.augmentation = None
 
     def __len__(self) -> int:
-        return len(self.image_ids)
+        return len(self.indexes)
 
     def load_image(self, path: str) -> np.ndarray:
         image = cv2.imread(path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
+    
+    def get_sample_dataset(self, image_id:int, component:int, i:int, j:int) -> pd.DataFrame:
+        sample_df = self.dataframe.query(f"image_id == {image_id} and component=={component} and i >= {i} and i < {i} + {self.num_tiles} and j >= {j} and j < {j} + {self.num_tiles}")
+        return sample_df.reset_index(drop=True)
 
     def __getitem__(self, index: int) -> Dict[str, np.ndarray | torch.Tensor]:
-        image_id = self.image_ids[index]
-        full_group = self.groups.get_group(image_id)
-        group = full_group.sample(n=self.num_images)
-        images = [self.load_image(row["path"]) for _, row in group.iterrows()]
+        index_row = self.indexes.loc[index]
+        sample_df = self.get_sample_dataset(index_row["image_id"], index_row['component'], index_row["i"], index_row["j"])
+        images = [self.load_image(path) for path in sample_df['path']]
         if self.augmentation:
             images_dict = {f"image_{num}": image for num, image in enumerate(images[1:])}
             images_dict["image"] = images[0]
@@ -83,12 +93,14 @@ class TileDataset(Dataset):
                 transformed_images[f"image_{num}"] for num in range(self.num_images - 1)
             ]
             images = torch.stack(images)
-        output = {"image_id": image_id, "image": images}
-        output["pos_x"] = group["i"].values // self.tile_size
-        output["pos_y"] = group["j"].values // self.tile_size
-
-        if "label" in group:
-            output["label"] = label2idx[group.iloc[0]["label"]]
-        if "is_tma" in group:
-            output["is_tma"] = int(group.iloc[0]["is_tma"])
+        output = {"image_id": index_row["image_id"], "image": images}
+        output["pos_x"] = sample_df["i"].values - index_row["i"]
+        output["pos_y"] = sample_df["j"].values - index_row["j"]
+        if "weight" in sample_df:
+            output["weight"] = sample_df["weight"].mean()
+        if "label" in sample_df:
+            output["label"] = label2idx[sample_df.iloc[0]["label"]]
+        if "is_tma" in sample_df:
+            output["is_tma"] = int(sample_df.iloc[0]["is_tma"])
         return output
+

@@ -15,12 +15,7 @@ from torch.utils.data import DataLoader
 import wandb
 from wandb import wandb_sdk
 
-from ..data import (
-    DATASET_REGISTRY,
-    AugmentationDataset,
-    build_augmentations,
-    label2idx,
-)
+from ..data import DATASET_REGISTRY, DATASETS, build_augmentations, label2idx
 from ..models import MODEL_REGISTRY
 from ..utils import PROJECT_NAME, set_seed, upload_to_wandb
 
@@ -97,10 +92,11 @@ def train_pl_run(config: DictConfig) -> None:
         offline=config.get("debug", False),
         job_type="train",
     )
-    dataset_builder = DATASET_REGISTRY.get(config.dataset.loader)
-    train_df, valid_df = dataset_builder(wandb_logger.experiment, config.dataset)
-    train_ds = AugmentationDataset(train_df, augmentation=build_augmentations(config.augmentations.train))
-    valid_ds = AugmentationDataset(valid_df, augmentation=build_augmentations(config.augmentations.valid))
+    dataframe_builder = DATASET_REGISTRY.get(config.dataset.loader)
+    train_df, valid_df = dataframe_builder(wandb_logger.experiment, config.dataset)
+    dataset_builder = DATASETS.get(config.get("dataset_entrypoint","AugmentationDataset"))
+    train_ds = dataset_builder(train_df, augmentation=build_augmentations(config.augmentations.train))
+    valid_ds = dataset_builder(valid_df, augmentation=build_augmentations(config.augmentations.valid))
     train_dataloader = DataLoader(train_ds, **config.dataloader.tr_dataloader)
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     weights = get_class_weights(train_df)
