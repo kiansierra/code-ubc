@@ -3,40 +3,42 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048-512
+  - dataset: tile-0.25-2048-256-model
   - _self_
 
 model:
-  entrypoint: TimmModel
-  backbone: tf_efficientnetv2_s_in21ft1k
-  pretrained: True
-  num_classes: 5
+  entrypoint: Unet 
+  backbone: resnet50
+  params:
+    encoder_name: resnet50
+    encoder_weights: imagenet
+    in_channels: 3
+
+
+dataset_entrypoint: VAEDataset
 
 augmentations:
-  resize_method: padded
   train:
     name: get_train_transforms
     img_size: ${img_size}
-    resize_method: ${augmentations.resize_method}
     flip:  True
     blur: True
     dropout: True
   valid:
     name: get_valid_transforms
-    resize_method: ${augmentations.resize_method}
     img_size: ${img_size}
 
 seed: 42
-name: ${model.backbone}
+name: ${model.entrypoint}-${model.params.encoder_name} 
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 256
 fold: 0
 checkpoint_id: Null
-monitor: val/global/bac
-batch_size: 32
-num_workers: 6
+monitor: val/epoch_image_loss
+batch_size: 64
+num_workers: 10
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 20
-accumulate_grad_batches: 1
+max_epochs: 4
+accumulate_grad_batches: 16

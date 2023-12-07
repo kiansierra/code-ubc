@@ -19,7 +19,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tile-tf_efficientnet_b0_ns"
+                "--config-name", "unet-vae"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"

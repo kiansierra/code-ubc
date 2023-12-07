@@ -3,6 +3,10 @@
 ## Future Work
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
+## 2023-12-06
+- [ ] VAE to Compress Images and train on outptu
+
+
 ## 2023-12-04
 - [x] Mixup
 - [x] CutMix

@@ -4,6 +4,8 @@ metric:
   name: val/global/bac
   goal: maximize
 parameters:
+  augmentations.resize_method:
+    values: [padded, resized, crop, mixed]
   augmentations.train.flip:
     values: [True, False]
   augmentations.train.blur:
@@ -11,7 +13,7 @@ parameters:
   augmentations.train.dropout:
     values: [True, False]
   augmentations.train.name:
-    values: [get_train_transforms, get_train_basic_transform, get_train_rsna_transform]
+    values: [get_train_transforms, get_train_basic_transform]
 
 command:
   - ${env}
