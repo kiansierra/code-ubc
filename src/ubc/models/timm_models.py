@@ -18,8 +18,9 @@ from ..utils import Registry
 from .cut_augmentations import CutMix, Mixup
 from .metrics import ClassBalancedAccuracy, EpochLoss
 from .optimization_utils import get_optimizer, get_scheduler
+from .model_registry import MODEL_REGISTRY, ConfigLightningModel
 
-__all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY", "BaseLightningModel"]
+__all__ = ["TimmModel", "TimmVITModel", "BaseLightningModel"]
 
 
 class GeM(nn.Module):
@@ -64,10 +65,9 @@ def create_table(image_ids: torch.Tensor, images: torch.Tensor, labels: torch.Te
     return columns, table
 
 
-class BaseLightningModel(pl.LightningModule):
+class BaseLightningModel(ConfigLightningModel):
     def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
-        super().__init__()
-        self.config = config
+        super().__init__(config=config)
         self.example_input_array = torch.zeros((1, 3, config["img_size"], config["img_size"]))
 
         model_config = config["model"]
@@ -170,13 +170,7 @@ class BaseLightningModel(pl.LightningModule):
         output = self(batch["image"])
         return {"image_id": batch["image_id"], "probs": output["probs"]}
 
-    def configure_optimizers(self) -> Any:
-        optimizer = get_optimizer(self.config, self)
-        scheduler = get_scheduler(self.config, optimizer)
-        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
-
-MODEL_REGISTRY = Registry("MODELS", BaseLightningModel)
 
 
 @MODEL_REGISTRY.register()

@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Optional
 
 import albumentations as A
@@ -39,6 +40,51 @@ class AugmentationDataset(Dataset):
         if self.augmentation:
             image = self.augmentation(image=image)["image"]
         output = {"image_id": row["image_id"], "image": image}
+        if "label" in row:
+            output["label"] = label2idx[row["label"]]
+        if "is_tma" in row:
+            output["is_tma"] = int(row["is_tma"])
+        if "weight" in row:
+            output["weight"] = row["weight"]
+        return output
+    
+@DATASETS.register()
+class VAEDataset(Dataset):
+    """
+    Dataset class for loading images and labels.
+    Applies augmentation if provided.
+    """
+
+    def __init__(self, dataframe: pd.DataFrame, augmentation: Optional[A.Compose] = None) -> None:
+        super().__init__()
+        self.records = dataframe.to_dict("records")
+        self.augmentation = augmentation
+
+    def __len__(self) -> int:
+        return len(self.records)
+
+    def load_image(self, path: str) -> np.ndarray:
+        image = cv2.imread(path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return image
+    
+    def load_mask(self, path: Optional[str], image:np.ndarray) -> np.ndarray:
+        if path and os.path.exists(path):
+            mask = cv2.imread(path)
+            mask = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            return mask, 1
+        mask = np.zeros(image.shape).astype(np.int32)
+        return mask, 0
+
+    def __getitem__(self, index: int) -> Dict[str, np.ndarray | torch.Tensor]:
+        row = self.records[index]
+        image = self.load_image(row["path"])
+        mask, mask_weight = self.load_mask(row["mask_path"], image)
+        if self.augmentation:
+            outputs = self.augmentation(image=image, mask=mask)
+            image = outputs["image"]
+            mask = outputs["mask"]
+        output = {"image_id": row["image_id"], "image": image, "mask": mask, "mask_weight": mask_weight}
         if "label" in row:
             output["label"] = label2idx[row["label"]]
         if "is_tma" in row:
