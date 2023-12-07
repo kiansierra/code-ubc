@@ -36,11 +36,25 @@ def get_dropouts():
     dropouts = [A.Cutout(num_holes=10, max_h_size=16, max_w_size=16), A.PixelDropout(dropout_prob=0.05)]
     return A.OneOf(dropouts, p=0.5)
 
+def get_resize(img_size:int, method:str):
+    if method == 'resize':
+        return A.Resize(img_size, img_size)
+    elif method == 'padded':
+        return A.Compose([A.LongestMaxSize(img_size), A.PadIfNeeded(img_size, img_size, border_mode=cv2.BORDER_CONSTANT)])
+    elif method == 'crop':
+        return A.RandomCrop(img_size, img_size)
+    elif method == 'mixed':
+        return A.OneOf([
+            A.Resize(img_size, img_size),
+            A.Compose([A.LongestMaxSize(img_size), A.PadIfNeeded(img_size, img_size, border_mode=cv2.BORDER_CONSTANT)]),
+            A.RandomCrop(img_size, img_size),
+        ])
+
 
 @AUGMENTATIONS_REGISTRY.register()
 def get_train_transforms(config: DictConfig) -> A.Compose:
     transforms = [
-        A.Resize(config.img_size, config.img_size),
+        get_resize(config.img_size, config.get("resize_method", "resize")),
         A.HorizontalFlip(p=0.5) if config.get("flip", False) else None,
         A.VerticalFlip(p=0.5) if config.get("flip", False) else None,
         A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=60, p=0.5, border_mode=cv2.BORDER_CONSTANT),
@@ -49,7 +63,7 @@ def get_train_transforms(config: DictConfig) -> A.Compose:
         get_blurs() if config.get("blur", False) else None,
         get_dropouts() if config.get("dropout", False) else None,
         A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD, max_pixel_value=255.0, p=1.0),
-        ToTensorV2(),
+        ToTensorV2(transpose_mask=True),
     ]
     transforms = [transform for transform in transforms if transform is not None]
     return A.Compose(transforms, p=1.0)
@@ -59,12 +73,12 @@ def get_train_transforms(config: DictConfig) -> A.Compose:
 def get_train_basic_transform(config: DictConfig) -> A.Compose:
     return A.Compose(
         [
-            A.Resize(config["img_size"], config["img_size"]),
+            get_resize(config.img_size, config.get("resize_method", "resize")),
             A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=60, p=0.5),
             A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
             A.RandomBrightnessContrast(brightness_limit=(-0.1, 0.1), contrast_limit=(-0.1, 0.1), p=0.5),
             A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD, max_pixel_value=255.0, p=1.0),
-            ToTensorV2(),
+            ToTensorV2(transpose_mask=True),
         ],
         p=1.0,
     )
@@ -181,9 +195,9 @@ def get_train_rsna_transform(config: DictConfig) -> A.Compose:
 def get_valid_transforms(config: DictConfig) -> A.Compose:
     return A.Compose(
         [
-            A.Resize(config.img_size, config.img_size),
+            get_resize(config.img_size, config.get("resize_method", "resize")),
             A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD, max_pixel_value=255.0, p=1.0),
-            ToTensorV2(),
+            ToTensorV2(transpose_mask=True),
         ],
         p=1.0,
     )
