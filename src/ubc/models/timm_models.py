@@ -81,7 +81,7 @@ class BaseLightningModel(ConfigLightningModel):
 
         loss_config = model_config["loss"]
         self.loss_fn = LOSSES.get(loss_config.name)(
-            weight=torch.tensor(weights) if loss_config.use_weights else None,
+            weight=torch.tensor(weights) if (loss_config.use_weights and weights is not None) else None,
             label_smoothing=loss_config.label_smoothing,
         )
         self.train_metric_global = metrics.clone(prefix="train/global/")
