@@ -66,6 +66,8 @@ def load_state_dict(folder: str, model: pl.LightningModule, variant: str = "best
     checkpoint_path = f"{folder}/{variant}.ckpt"
     state_dict = torch.load(checkpoint_path)["state_dict"]
     state_dict.pop("loss_fn.weight", None)
+    state_dict.pop("loss_fn.cce.weight", None)
+    state_dict.pop("loss_fn.bce.weight", None)
     model.load_state_dict(state_dict, strict=False)
     logger.info(f"Loaded checkpoint: {folder}")
     return model
