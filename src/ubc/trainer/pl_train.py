@@ -92,8 +92,8 @@ def train_pl_run(config: DictConfig) -> None:
         offline=config.get("debug", False),
         job_type="train",
     )
-    dataframe_builder = DATASET_REGISTRY.get(config.dataset.loader)
-    train_df, valid_df = dataframe_builder(wandb_logger.experiment, config.dataset)
+    dataframe_builder = DATASET_REGISTRY.get(config.dataframe.loader)
+    train_df, valid_df = dataframe_builder(wandb_logger.experiment, config.dataframe)
     dataset_builder = DATASETS.get(config.get("dataset_entrypoint","AugmentationDataset"))
     train_ds = dataset_builder(train_df, augmentation=build_augmentations(config.augmentations.train))
     valid_ds = dataset_builder(valid_df, augmentation=build_augmentations(config.augmentations.valid))
