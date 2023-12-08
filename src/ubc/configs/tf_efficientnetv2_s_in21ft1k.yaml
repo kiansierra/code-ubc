@@ -3,7 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048-512
+  - dataframe: crop-0.0-2048
   - _self_
 
 model:
@@ -38,5 +38,5 @@ num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 20
+max_epochs: 12
 accumulate_grad_batches: 1

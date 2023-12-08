@@ -4,7 +4,7 @@ gradient_clip_val: 1.0
 max_steps : ${max_steps}
 min_epochs: 2
 max_epochs: ${max_epochs}
-log_every_n_steps: 20
+log_every_n_steps: 10
 devices: 1
 deterministic: True
 benchmark: False

@@ -109,6 +109,9 @@ class BaseLightningModel(ConfigLightningModel):
             self.train_metric_tma.update(
                 preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
             )
+        if batch_idx == 0:
+            columns, data = create_table(batch["image_id"], images, batch["label"], output["probs"].detach())
+            self.trainer.logger.log_table("train/images", columns=columns, data=data)
         return loss.mean()
 
     def on_train_epoch_end(self) -> None:
@@ -146,7 +149,7 @@ class BaseLightningModel(ConfigLightningModel):
             )
         if batch_idx == 0:
             columns, data = create_table(batch["image_id"], images, batch["label"], output["probs"])
-            self.trainer.logger.log_table("images", columns=columns, data=data)
+            self.trainer.logger.log_table("val/images", columns=columns, data=data)
         return super().validation_step()
 
     def on_validation_epoch_end(self) -> None:

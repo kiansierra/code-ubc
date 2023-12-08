@@ -32,8 +32,10 @@ def get_blurs():
     return A.OneOf(blurs, p=0.5)
 
 
-def get_dropouts():
-    dropouts = [A.Cutout(num_holes=10, max_h_size=16, max_w_size=16), A.PixelDropout(dropout_prob=0.05)]
+def get_dropouts(img_size:int):
+    hole_sizes = int(img_size * 0.2)
+    dropouts = [A.CoarseDropout(max_holes=2, max_height=hole_sizes, max_width=hole_sizes),
+                A.PixelDropout(dropout_prob=0.05)]
     return A.OneOf(dropouts, p=0.5)
 
 def get_resize(img_size:int, method:str):
@@ -42,13 +44,13 @@ def get_resize(img_size:int, method:str):
     elif method == 'padded':
         return A.Compose([A.LongestMaxSize(img_size), A.PadIfNeeded(img_size, img_size, border_mode=cv2.BORDER_CONSTANT)])
     elif method == 'crop':
-        return A.RandomCrop(img_size, img_size)
+        return A.Compose([A.SmallestMaxSize([img_size, img_size*2]), A.RandomCrop(img_size, img_size)])
     elif method == 'mixed':
         return A.OneOf([
             A.Resize(img_size, img_size),
             A.Compose([A.LongestMaxSize(img_size), A.PadIfNeeded(img_size, img_size, border_mode=cv2.BORDER_CONSTANT)]),
-            A.RandomCrop(img_size, img_size),
-        ])
+            A.Compose([A.SmallestMaxSize([img_size, img_size*2]), A.RandomCrop(img_size, img_size)])
+        ], p=1.0)
 
 
 @AUGMENTATIONS_REGISTRY.register()
@@ -57,11 +59,10 @@ def get_train_transforms(config: DictConfig) -> A.Compose:
         get_resize(config.img_size, config.get("resize_method", "resize")),
         A.HorizontalFlip(p=0.5) if config.get("flip", False) else None,
         A.VerticalFlip(p=0.5) if config.get("flip", False) else None,
-        A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=60, p=0.5, border_mode=cv2.BORDER_CONSTANT),
-        A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
         A.RandomBrightnessContrast(brightness_limit=(-0.1, 0.1), contrast_limit=(-0.1, 0.1), p=0.5),
+        A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=60, p=0.5, border_mode=cv2.BORDER_CONSTANT),       
         get_blurs() if config.get("blur", False) else None,
-        get_dropouts() if config.get("dropout", False) else None,
+        get_dropouts(config.img_size) if config.get("dropout", False) else None,
         A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD, max_pixel_value=255.0, p=1.0),
         ToTensorV2(transpose_mask=True),
     ]
@@ -74,9 +75,6 @@ def get_train_basic_transform(config: DictConfig) -> A.Compose:
     return A.Compose(
         [
             get_resize(config.img_size, config.get("resize_method", "resize")),
-            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=60, p=0.5),
-            A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
-            A.RandomBrightnessContrast(brightness_limit=(-0.1, 0.1), contrast_limit=(-0.1, 0.1), p=0.5),
             A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD, max_pixel_value=255.0, p=1.0),
             ToTensorV2(transpose_mask=True),
         ],
