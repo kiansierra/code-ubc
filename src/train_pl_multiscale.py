@@ -19,11 +19,11 @@ def train_pipeline(config: DictConfig) -> None:
     assert len(set(config_lengths.values())) == 1, f"Lengths of config lists don't match {config_lengths}"
     checkpoint_id = None
     num_steps = list(config_lengths.values())[0]
-    config_keys = ["dataset", "optimizer"]
+    config_keys = ["dataframe", "optimizer"]
     for num in range(num_steps):
         for k in config_lengths.keys():
             if k in config_keys:
-                base_config.dataset = get_configs(folder=k)[config[k][num]]
+                base_config.dataframe = get_configs(folder=k)[config[k][num]]
             else:
                 base_config[k] = config[k][num]
         base_config.checkpoint_id = checkpoint_id
