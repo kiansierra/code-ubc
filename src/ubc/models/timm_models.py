@@ -1,10 +1,10 @@
 from typing import Any, List, Optional
 
-import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
 from einops import rearrange
+
 # from fvcore.common.registry import Registry
 from omegaconf import DictConfig
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -14,12 +14,11 @@ from torch.nn import functional as F
 import wandb
 
 from ..data.constants import idx2label
-from ..utils import Registry
 from .cut_augmentations import CutMix, Mixup
 from .metrics import ClassBalancedAccuracy, EpochLoss
-from .optimization_utils import get_optimizer, get_scheduler
 from .model_registry import MODEL_REGISTRY, ConfigLightningModel
 from .losses import LOSSES
+
 __all__ = ["TimmModel", "TimmVITModel", "BaseLightningModel"]
 
 
@@ -70,7 +69,7 @@ class BaseLightningModel(ConfigLightningModel):
         super().__init__(config=config)
         self.example_input_array = torch.zeros((config["batch_size"], 3, config["img_size"], config["img_size"]))
         model_config = config["model"]
-        num_classes=model_config["num_classes"]
+        num_classes = model_config["num_classes"]
         self.num_classes = num_classes
         metrics = tm.MetricCollection(
             tm.Accuracy(num_classes=num_classes, task="multiclass", average="macro"),
@@ -79,10 +78,12 @@ class BaseLightningModel(ConfigLightningModel):
             ClassBalancedAccuracy(num_classes=num_classes, average="macro"),
             EpochLoss(),
         )
-        
+
         loss_config = model_config["loss"]
-        self.loss_fn = LOSSES.get(loss_config.name)(weight=torch.tensor(weights) if loss_config.use_weights else None,
-                                                    label_smoothing=loss_config.label_smoothing)
+        self.loss_fn = LOSSES.get(loss_config.name)(
+            weight=torch.tensor(weights) if loss_config.use_weights else None,
+            label_smoothing=loss_config.label_smoothing,
+        )
         self.train_metric_global = metrics.clone(prefix="train/global/")
         self.train_metric_wsi = metrics.clone(prefix="train/wsi/")
         self.train_metric_tma = metrics.clone(prefix="train/tma/")
@@ -176,8 +177,6 @@ class BaseLightningModel(ConfigLightningModel):
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         output = self(batch["image"])
         return {"image_id": batch["image_id"], "probs": output["probs"]}
-
-
 
 
 @MODEL_REGISTRY.register()
@@ -322,8 +321,8 @@ class TileModel(BaseLightningModel):
         self.backbone.classifier = nn.Identity()
         self.backbone.global_pool = nn.Identity()
         self.pooling = GeM()
-        self.x_embed = nn.Embedding(model_config['num_tiles'], self.backbone.num_features)
-        self.y_embed = nn.Embedding(model_config['num_tiles'], self.backbone.num_features)
+        self.x_embed = nn.Embedding(model_config["num_tiles"], self.backbone.num_features)
+        self.y_embed = nn.Embedding(model_config["num_tiles"], self.backbone.num_features)
         self.layers = nn.ModuleList(
             [
                 nn.TransformerEncoderLayer(self.backbone.num_features, model_config["num_heads"], batch_first=True)
@@ -334,7 +333,7 @@ class TileModel(BaseLightningModel):
         self.head = nn.Linear(self.backbone.num_features, model_config["num_classes"])
         self.softmax = nn.Softmax(dim=1)
         # self.freeze_backbone()
-        
+
     def freeze_backbone(self):
         for param in self.backbone.parameters():
             param.requires_grad = False

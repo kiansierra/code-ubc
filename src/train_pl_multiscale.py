@@ -31,9 +31,8 @@ def train_pipeline(config: DictConfig) -> None:
         base_config.output_dir = output_dir
         logger.info(f"Checkpoint ID: {checkpoint_id}")
         torch.cuda.empty_cache()
-        
+
     return checkpoint_id
-        
 
 
 if __name__ == "__main__":
