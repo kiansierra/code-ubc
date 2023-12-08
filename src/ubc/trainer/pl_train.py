@@ -80,7 +80,7 @@ def train_pl_run(config: DictConfig) -> None:
     tags = [
         config.model.backbone,
         config.model.entrypoint,
-        config.dataset.artifact_name,
+        config.dataframe.artifact_name,
         config.augmentations.train.name,
         f"img_size-{config.img_size}",
     ]
