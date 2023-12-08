@@ -90,3 +90,18 @@ def load_tile(run: wandb_sdk.wandb_run.Run, config: DictConfig):
             .reset_index(drop=True)
         )
     return train_df, val_df
+
+
+@DATASET_REGISTRY.register()
+def load_tile_model(run: wandb_sdk.wandb_run.Run, config: DictConfig):
+    artifact = run.use_artifact(f"{PROJECT_NAME}/{config.artifact_name}:latest", type="dataset")
+    artifact_dir = artifact.download()
+    df = pd.read_parquet(f"{artifact_dir}/{config.artifact_name}")
+    df["path"] = df[config.column_name]
+    df["i"] = df["i"] // config.tile_size
+    df["j"] = df["j"] // config.tile_size
+    df["max_i"] = df.groupby(["image_id", "component"])["i"].transform("max")
+    df["max_j"] = df.groupby(["image_id", "component"])["j"].transform("max")
+    train_df = df.query(f"fold != {config.fold}").reset_index(drop=True)
+    val_df = df.query(f"fold == {config.fold}").reset_index(drop=True)
+    return train_df, val_df

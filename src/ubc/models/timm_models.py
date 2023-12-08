@@ -1,6 +1,5 @@
 from typing import Any, List, Optional
 
-import pytorch_lightning as pl
 import timm
 import torch
 import torchmetrics as tm
@@ -15,12 +14,12 @@ from torch.nn import functional as F
 import wandb
 
 from ..data.constants import idx2label
-from ..utils import Registry
 from .cut_augmentations import CutMix, Mixup
 from .metrics import ClassBalancedAccuracy, EpochLoss
-from .optimization_utils import get_optimizer, get_scheduler
+from .model_registry import MODEL_REGISTRY, ConfigLightningModel
+from .losses import LOSSES
 
-__all__ = ["TimmModel", "TimmVITModel", "MODEL_REGISTRY", "BaseLightningModel"]
+__all__ = ["TimmModel", "TimmVITModel", "BaseLightningModel"]
 
 
 class GeM(nn.Module):
@@ -65,24 +64,25 @@ def create_table(image_ids: torch.Tensor, images: torch.Tensor, labels: torch.Te
     return columns, table
 
 
-class BaseLightningModel(pl.LightningModule):
+class BaseLightningModel(ConfigLightningModel):
     def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
-        super().__init__()
-        self.config = config
-        self.example_input_array = torch.zeros((1, 3, config["img_size"], config["img_size"]))
-
+        super().__init__(config=config)
+        self.example_input_array = torch.zeros((config["batch_size"], 3, config["img_size"], config["img_size"]))
         model_config = config["model"]
+        num_classes = model_config["num_classes"]
+        self.num_classes = num_classes
         metrics = tm.MetricCollection(
-            tm.Accuracy(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
-            tm.Precision(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
-            tm.Recall(num_classes=model_config["num_classes"], task="multiclass", average="macro"),
-            ClassBalancedAccuracy(num_classes=model_config["num_classes"], average="macro"),
+            tm.Accuracy(num_classes=num_classes, task="multiclass", average="macro"),
+            tm.Precision(num_classes=num_classes, task="multiclass", average="macro"),
+            tm.Recall(num_classes=num_classes, task="multiclass", average="macro"),
+            ClassBalancedAccuracy(num_classes=num_classes, average="macro"),
             EpochLoss(),
         )
-        self.loss_fn = nn.CrossEntropyLoss(
-            weight=torch.tensor(weights) if weights else None,
-            reduction="none",
-            label_smoothing=model_config.get("label_smoothing", 0.0),
+
+        loss_config = model_config["loss"]
+        self.loss_fn = LOSSES.get(loss_config.name)(
+            weight=torch.tensor(weights) if loss_config.use_weights else None,
+            label_smoothing=loss_config.label_smoothing,
         )
         self.train_metric_global = metrics.clone(prefix="train/global/")
         self.train_metric_wsi = metrics.clone(prefix="train/wsi/")
@@ -90,14 +90,17 @@ class BaseLightningModel(pl.LightningModule):
         self.val_metric_global = metrics.clone(prefix="val/global/")
         self.val_metric_wsi = metrics.clone(prefix="val/wsi/")
         self.val_metric_tma = metrics.clone(prefix="val/tma/")
+        self.cutmix = CutMix(aux_keys=["label", "weight"], image_key="image", **model_config["cutmix"])
+        self.mixup = Mixup(keys=["image", "label", "weight"], **model_config["mixup"])
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        images = batch["image"]
         labels = batch["label"]
+        batch["label"] = F.one_hot(batch["label"], self.num_classes).float()
+        batch, skip = self.mixup(batch)
+        batch, skip = self.cutmix(batch, skip)
+        images = batch["image"]
         output = self(images)
-        loss = self.loss_fn(output["logits"], labels)
-        if "weight" in batch:
-            loss = loss * batch["weight"] / batch["weight"].mean()
+        loss = self.loss_fn(output["logits"], batch["label"], batch.get("weight", None))
         self.log("train/loss", loss.mean(), prog_bar=True)
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
@@ -110,6 +113,9 @@ class BaseLightningModel(pl.LightningModule):
             self.train_metric_tma.update(
                 preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
             )
+        if batch_idx == 0:
+            columns, data = create_table(batch["image_id"], images, labels, output["probs"].detach())
+            self.trainer.logger.log_table("train/images", columns=columns, data=data)
         return loss.mean()
 
     def on_train_epoch_end(self) -> None:
@@ -130,10 +136,11 @@ class BaseLightningModel(pl.LightningModule):
         return super().on_train_epoch_end()
 
     def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
-        images = batch["image"]
         labels = batch["label"]
+        batch["label"] = F.one_hot(batch["label"], self.num_classes).float()
+        images = batch["image"]
         output = self(images)
-        loss = self.loss_fn(output["logits"], labels)
+        loss = self.loss_fn(output["logits"], labels, batch.get("weight", None))
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
         self.val_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
@@ -146,8 +153,8 @@ class BaseLightningModel(pl.LightningModule):
                 preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
             )
         if batch_idx == 0:
-            columns, data = create_table(batch["image_id"], images, batch["label"], output["probs"])
-            self.trainer.logger.log_table("images", columns=columns, data=data)
+            columns, data = create_table(batch["image_id"], images, labels, output["probs"])
+            self.trainer.logger.log_table("val/images", columns=columns, data=data)
         return super().validation_step()
 
     def on_validation_epoch_end(self) -> None:
@@ -170,14 +177,6 @@ class BaseLightningModel(pl.LightningModule):
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         output = self(batch["image"])
         return {"image_id": batch["image_id"], "probs": output["probs"]}
-
-    def configure_optimizers(self) -> Any:
-        optimizer = get_optimizer(self.config, self)
-        scheduler = get_scheduler(self.config, optimizer)
-        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
-
-
-MODEL_REGISTRY = Registry("MODELS", BaseLightningModel)
 
 
 @MODEL_REGISTRY.register()
@@ -228,13 +227,16 @@ class TimmBasicModel(BaseLightningModel):
     def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
         super().__init__(config, weights=weights)
         model_config = config["model"]
+        global_pool = model_config.get("global_pool", "avg")
 
         self.backbone = timm.create_model(
             model_config["backbone"],
             pretrained=model_config["pretrained"],
             num_classes=model_config["num_classes"],
-            global_pool=model_config.get("global_pool", "avg"),
+            global_pool=global_pool if global_pool != "gem" else "avg",
         )
+        if global_pool == "gem":
+            self.backbone.global_pool = GeM()
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, images):
@@ -308,7 +310,7 @@ class TileModel(BaseLightningModel):
     def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
         super().__init__(config, weights=weights)
         model_config = config["model"]
-        num_tiles = 8
+        num_tiles = 16
         self.example_input_array = {
             "images": torch.zeros((1, num_tiles, 3, config["img_size"], config["img_size"])),
             "x_pos": torch.zeros((1, num_tiles)).long(),
@@ -319,8 +321,8 @@ class TileModel(BaseLightningModel):
         self.backbone.classifier = nn.Identity()
         self.backbone.global_pool = nn.Identity()
         self.pooling = GeM()
-        self.x_embed = nn.Embedding(64, self.backbone.num_features)
-        self.y_embed = nn.Embedding(64, self.backbone.num_features)
+        self.x_embed = nn.Embedding(model_config["num_tiles"], self.backbone.num_features)
+        self.y_embed = nn.Embedding(model_config["num_tiles"], self.backbone.num_features)
         self.layers = nn.ModuleList(
             [
                 nn.TransformerEncoderLayer(self.backbone.num_features, model_config["num_heads"], batch_first=True)
@@ -330,6 +332,11 @@ class TileModel(BaseLightningModel):
 
         self.head = nn.Linear(self.backbone.num_features, model_config["num_classes"])
         self.softmax = nn.Softmax(dim=1)
+        # self.freeze_backbone()
+
+    def freeze_backbone(self):
+        for param in self.backbone.parameters():
+            param.requires_grad = False
 
     def get_features(self, x: torch.Tensor) -> torch.Tensor:
         bs = x.shape[0]

@@ -3,16 +3,26 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048-256
+  - dataframe: tile-0.25-2048-512
   - _self_
 
 model:
   entrypoint: TimmModel
-  backbone: tf_efficientnet_b0_ns
+  backbone: tf_efficientnet_b0_ns.ns_jft_in1k
   pretrained: True
   num_classes: 5
   label_smoothing: 0.05
   use_weights: True
+  cutmix:
+    prob: 0.2
+    beta: 1.0
+  mixup:
+    prob: 0.2
+    alpha: 1.0
+  loss:
+    name: WeightedCrossEntropy
+    label_smoothing: 0.05
+    use_weights: True
 
 augmentations:
   train:
@@ -30,12 +40,12 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 512
 fold: 0
-checkpoint_id: 3kqnxlhm
+checkpoint_id: u7p2p72j
 monitor: val/global/bac
-batch_size: 32
+batch_size: 8
 num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 20
-accumulate_grad_batches: 1
+max_epochs: 50
+accumulate_grad_batches: 2

@@ -3,15 +3,19 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataframe: tile-0.25-2048-256
+  - dataframe: tile-0.25-2048-256-model
   - _self_
 
 model:
-  entrypoint: TimmBasicModel
-  backbone: convnext_small.fb_in22k_ft_in1k_384
-  pretrained: True
-  num_classes: 5
-  use_weights: True
+  entrypoint: Unet 
+  backbone: resnet50
+  params:
+    encoder_name: resnet50
+    encoder_weights: imagenet
+    in_channels: 3
+
+
+dataset_entrypoint: VAEDataset
 
 augmentations:
   train:
@@ -25,16 +29,16 @@ augmentations:
     img_size: ${img_size}
 
 seed: 42
-name: ${model.backbone}
+name: ${model.entrypoint}-${model.params.encoder_name} 
 output_dir:  ../checkpoints/${name}
 img_size: 256
 fold: 0
 checkpoint_id: Null
-monitor: val/global/bac
+monitor: val/epoch_image_loss
 batch_size: 64
-num_workers: 6
+num_workers: 10
 
 lr: 2e-5
-max_steps: Null
-max_epochs: 6
-accumulate_grad_batches: 2
+max_steps: 10000
+max_epochs: 4
+accumulate_grad_batches: 16

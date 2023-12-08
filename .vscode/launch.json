@@ -19,7 +19,7 @@
             "program": "src/train_pl.py",
             "console": "integratedTerminal",
             "args": [
-                "--config-name", "tf_efficientnet_b0_ns-bce"
+                "--config-name", "tf_efficientnet_b0_ns"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "1"

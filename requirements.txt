@@ -16,6 +16,7 @@ pytest
 python-dotenv
 pytorch_lightning
 scikit-learn>=1.0.0
+segmentation-models-pytorch
 tensorboard
 torch
 torchmetrics>=0.8.2

@@ -2,6 +2,6 @@ base_model: 'tf_efficientnet_b5_ns'
 img_size: [256, 512, 1024]
 lr: [2.0e-5, 2.0e-5, 2.0e-5]
 batch_size: [32,16,8]
-dataset: ["tile-0.25-2048-256", "tile-0.25-2048-512", "tile-0.25-2048-1024"]
+dataframe: ["tile-0.25-2048-256", "tile-0.25-2048-512", "tile-0.25-2048-1024"]
 max_epochs: [8, 6, 4]
 accumulate_grad_batches: [2,4,8]

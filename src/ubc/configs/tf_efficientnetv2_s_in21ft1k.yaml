@@ -3,7 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataset: tile-0.25-2048-512
+  - dataframe: crop-0.0-2048
   - _self_
 
 model:
@@ -13,14 +13,17 @@ model:
   num_classes: 5
 
 augmentations:
+  resize_method: padded
   train:
     name: get_train_transforms
     img_size: ${img_size}
+    resize_method: ${augmentations.resize_method}
     flip:  True
     blur: True
     dropout: True
   valid:
     name: get_valid_transforms
+    resize_method: ${augmentations.resize_method}
     img_size: ${img_size}
 
 seed: 42
@@ -28,12 +31,12 @@ name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
 img_size: 512
 fold: 0
-checkpoint_id: f9weiuw3
+checkpoint_id: Null
 monitor: val/global/bac
 batch_size: 32
 num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 20
+max_epochs: 12
 accumulate_grad_batches: 1

@@ -1,7 +1,7 @@
-base_model: 'convnext_small'
+base_model: 'tf_efficientnetv2_s_in21ft1k'
 img_size: [512, 1024, 1536, 2048, 2048]
 lr: [1e-4, 5e-5, 2e-5, 1e-5, 2e-5]
 batch_size: [8, 4, 2, 2, 2]
-dataset: ["thumbnail", "thumbnail", "thumbnail", "thumbnail", "crop-0.0-2048"]
+dataframe: ["thumbnail", "thumbnail", "thumbnail", "thumbnail", "crop-0.0-2048"]
 max_epochs: [12, 10, 10, 10, 12]
 accumulate_grad_batches: [4, 8, 16, 16, 16]

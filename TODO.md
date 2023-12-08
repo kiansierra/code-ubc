@@ -3,6 +3,16 @@
 ## Future Work
 - [ ] Mask Segmentation with custom backbone that can be reused for classification
 
+## 2023-12-08
+- [ ] Pass Config to Datasets
+- [ ] Sweep comparing different cutmix and mixup configurations
+- [ ] Sweep comparing different loss BCE and CrossEntropy
+
+
+## 2023-12-06
+- [ ] VAE to Compress Images and train on output
+
+
 ## 2023-12-04
 - [x] Mixup
 - [x] CutMix
