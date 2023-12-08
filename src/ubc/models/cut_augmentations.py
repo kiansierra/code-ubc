@@ -23,8 +23,8 @@ class Mixup(nn.Module):
         lam = max(lam, 1 - lam)
         bs = batch[self.main_key].size(0)
         index = torch.randperm(bs).to(batch[self.main_key].device)
-
-        for key in self.keys:
+        intersect_keys = list(set(self.keys) & set(batch.keys()))
+        for key in intersect_keys:
             batch[key] = lam * batch[key] + (1 - lam) * batch[key][index]
         return batch, True
 
@@ -48,7 +48,8 @@ class CutMix(nn.Module):
         bbx1, bby1, bbx2, bby2 = self.rand_bbox(images.size(), lam, images.device)
         images[:, :, bbx1:bbx2, bby1:bby2] = images[rand_index, :, bbx1:bbx2, bby1:bby2]
         lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (images.size()[-1] * images.size()[-2]))
-        for key in self.aux_keys:
+        intersect_keys = list(set(self.aux_keys) & set(batch.keys()))
+        for key in intersect_keys:
             target_a = batch[key]
             target_b = batch[key][rand_index]
             batch[key] = target_a * lam + target_b * (1.0 - lam)
