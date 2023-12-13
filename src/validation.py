@@ -47,8 +47,8 @@ def validate(checkpoint_id: str) -> None:
     run = wandb.init(job_type="validate", project=PROJECT_NAME)
     ckpt_artifact_dir = get_checkpoint_folder(checkpoint_id, run)
     config = OmegaConf.load(os.path.join(ckpt_artifact_dir, "config.yaml"))
-    dataset_builder = DATASET_REGISTRY.get(config.dataset.loader)
-    _, valid_df = dataset_builder(run, config.dataset)
+    dataset_builder = DATASET_REGISTRY.get(config.dataframe.loader)
+    _, valid_df = dataset_builder(run, config.dataframe)
     valid_ds = AugmentationDataset(valid_df, augmentation=build_augmentations(config.augmentations.valid))
     valid_dataloader = DataLoader(valid_ds, **config.dataloader.val_dataloader)
     config.model.pretrained = False
