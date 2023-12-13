@@ -62,7 +62,7 @@
             "program": "src/validation.py",
             "console": "integratedTerminal",
             "args": [
-                "--checkpoint-id", "jsme4tt1"
+                "--checkpoint-id", "ijczbix8"
             ],
             "justMyCode": false
         },

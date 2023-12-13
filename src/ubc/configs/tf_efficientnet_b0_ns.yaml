@@ -3,7 +3,7 @@ defaults:
   - optimizer: adam
   - scheduler: cosine_annealing
   - dataloader: dataloader
-  - dataframe: tile-0.25-2048-512
+  - dataframe: crop-0.0-2048
   - _self_
 
 model:
@@ -14,38 +14,41 @@ model:
   label_smoothing: 0.05
   use_weights: True
   cutmix:
-    prob: 0.2
+    prob: 0.15
     beta: 1.0
   mixup:
-    prob: 0.2
+    prob: 0.35
     alpha: 1.0
   loss:
-    name: WeightedCrossEntropy
+    name: WeightedBCE
     label_smoothing: 0.05
     use_weights: True
 
 augmentations:
+  resize_method: mixed
   train:
     name: get_train_transforms
     img_size: ${img_size}
+    resize_method: ${augmentations.resize_method}
     flip:  True
     blur: True
     dropout: True
   valid:
     name: get_valid_transforms
     img_size: ${img_size}
+    resize_method: ${augmentations.resize_method}
 
 seed: 42
 name: ${model.backbone}
 output_dir:  ../checkpoints/${name}
-img_size: 512
+img_size: 1024
 fold: 0
-checkpoint_id: u7p2p72j
+checkpoint_id: rkp51swn
 monitor: val/global/bac
-batch_size: 8
+batch_size: 16
 num_workers: 6
 
 lr: 2e-5
 max_steps: 10000
-max_epochs: 50
+max_epochs: 30
 accumulate_grad_batches: 2

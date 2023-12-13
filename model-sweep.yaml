@@ -1,0 +1,42 @@
+program: src/train_pl.py
+method: bayes
+metric:
+  name: val/global/bac
+  goal: maximize
+parameters:
+  lr:
+    min: 5.0e-6
+    max: 5.0e-4
+  model.use_weights:
+    values: [True, False]
+  model.label_smoothing:
+    min: 0.0
+    max: 0.1
+  model.cutmix.prob:
+    min: 0.0
+    max: 0.5
+  model.cutmix.beta:
+    min: 0.0
+    max: 1.0
+  model.mixup.prob:
+    min: 0.0
+    max: 0.5
+  model.mixup.alpha:
+    min: 0.0
+    max: 1.0
+  augmentations.train.flip:
+    values: [True, False]
+  augmentations.train.blur:
+    values: [True, False]
+  augmentations.train.dropout:
+    values: [True, False]
+  augmentations.resize_method:
+    values: [padded, resize, crop, mixed]
+
+  
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args_no_hyphens}
