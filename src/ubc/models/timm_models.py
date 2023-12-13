@@ -140,7 +140,7 @@ class BaseLightningModel(ConfigLightningModel):
         batch["label"] = F.one_hot(batch["label"], self.num_classes).float()
         images = batch["image"]
         output = self(images)
-        loss = self.loss_fn(output["logits"], labels, batch.get("weight", None))
+        loss = self.loss_fn(output["logits"], batch["label"], batch.get("weight", None))
         tma_index = torch.where(batch["is_tma"] == 1)[0]
         wsi_index = torch.where(batch["is_tma"] == 0)[0]
         self.val_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
@@ -244,65 +244,6 @@ class TimmBasicModel(BaseLightningModel):
         logits = self.backbone.forward_head(features)
         output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
         return output
-
-
-@MODEL_REGISTRY.register()
-class TimmModelBCE(BaseLightningModel):
-    def __init__(self, config: DictConfig, weights: Optional[List[int]] = None) -> None:
-        super().__init__(config, weights=weights)
-        model_config = config["model"]
-
-        self.backbone = timm.create_model(
-            model_config["backbone"],
-            pretrained=model_config["pretrained"],
-            num_classes=model_config["num_classes"],
-            global_pool=model_config.get("global_pool", "avg"),
-        )
-        self.softmax = nn.Softmax(dim=1)
-        self.cutmix = CutMix(aux_keys=["label", "weight"], image_key="image", beta=1.0, prob=0.5)
-        self.mixup = Mixup(keys=["image", "label", "weight"], alpha=1.0, prob=0.5)
-        self.loss_fn = nn.BCEWithLogitsLoss(weight=torch.tensor(weights) if weights else None, reduction="none")
-        self.num_classes = model_config["num_classes"]
-
-    def forward(self, images):
-        features = self.backbone.forward_features(images)
-        logits = self.backbone.forward_head(features)
-        output = {"logits": logits, "features": features, "probs": self.softmax(logits)}
-        return output
-
-    def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        batch["label"] = F.one_hot(batch["label"], self.num_classes).float()
-        batch, skip = self.mixup(batch)
-        batch, skip = self.cutmix(batch, skip)
-        output = self(batch["image"])
-        loss = self.loss_fn(output["logits"], batch["label"])
-        if "weight" in batch:
-            loss = loss * batch["weight"].unsqueeze(-1) / batch["weight"].mean()
-        self.log("train/loss", loss.mean(), prog_bar=True)
-        return loss.mean()
-
-    def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
-        images = batch["image"]
-        label = batch["label"]
-        batch["label"] = F.one_hot(batch["label"], self.num_classes).float()
-        labels = batch["label"]
-        output = self(images)
-        loss = self.loss_fn(output["logits"], labels)
-        tma_index = torch.where(batch["is_tma"] == 1)[0]
-        wsi_index = torch.where(batch["is_tma"] == 0)[0]
-        self.val_metric_global.update(preds=output["probs"], target=labels, loss=loss.mean())
-        if len(wsi_index):
-            self.val_metric_wsi.update(
-                preds=output["probs"][wsi_index], target=labels[wsi_index], loss=loss[wsi_index].mean()
-            )
-        if len(tma_index):
-            self.val_metric_tma.update(
-                preds=output["probs"][tma_index], target=labels[tma_index], loss=loss[tma_index].mean()
-            )
-        if batch_idx == 0:
-            columns, data = create_table(batch["image_id"], images, label, output["probs"])
-            self.trainer.logger.log_table("images", columns=columns, data=data)
-        return
 
 
 @MODEL_REGISTRY.register()
